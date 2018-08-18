@@ -1,38 +1,58 @@
 const fs = require('fs');
+const _ = require('lodash');
 const sqlite3 = require('sqlite3').verbose();
 const yaml = require('js-yaml');
-const { batch } = require('./node_modules/crunchy/dist');
+const { batch: crunchy } = require('./node_modules/crunchy/dist');
 const format = require('string-format');
 const request = require('request');
 const commander = require('commander');
 const cheerio = require('cheerio');
 
+// Create a directory if it does not already exist
 function mkdir(dir) {
   if (!fs.existsSync(dir)){
     fs.mkdirSync(dir);
   }
 }
 
+// Write an object to the yml config file
 function writeConfig(obj) {
   fs.writeFileSync('config.yml', yaml.safeDump(obj));
 }
 
+// A map function that allows map to have asynchronous functions
+Array.prototype.syncMap = async function (fn) {
+  let arr = [];
+  for(let i = 0; i < this.length; i++) {
+    try {
+      arr.push(await fn(this[i]));
+    } catch (e) {
+      arr.push(undefined);
+    }
+  }
+  return arr;
+};
+
+// Create the default config file
 if(!fs.existsSync('config.yml')) {
+  console.log('Remember to update the default values in your newly created config.yml!');
   writeConfig({
     agree_to_license: false,
     settings: {
-      mal_username: 'MAL_USERNAME',
-      crunchy: {
+      myanimelist: {
+        username: 'MAL_USERNAME',
+      },
+      crunchyroll: {
         username: 'CRUNCHYROLL_USERNAME',
         password: 'CRUNCHYROLL_PASSWORD',
       },
-      data_dir: 'data',
-      download_dir: 'downloads',
+      output_dir: 'downloads',
     },
     shows: null,
   });
 }
 
+// Grabs a user's list in JSON form
 function fetchList(name) {
   return new Promise((resolve, reject) => {
     request(`https://myanimelist.net/animelist/${name}?status=1`, (err, resp, body) => {
@@ -44,41 +64,62 @@ function fetchList(name) {
   });
 }
 
+function fetchFeed() {
+  return new Promise((resolve, reject) => {
+    request('http://feeds.feedburner.com/crunchyroll/rss?format=xml', (err, resp, body) => {
+      if(err)
+        return reject(err);
+
+    });
+  });
+}
+
+// Try to get the Crunchyroll link by searching for videos based on the MAL show name
 function guessCrunchyroll(mal_item) {
   return new Promise((resolve, reject) => {
     const {anime_url, anime_title} = mal_item;
+
+    // Search crunchyroll and resolve if we found a video
     function tryTitle(title) {
       return new Promise((resolve, reject) => {
         request(`http://www.crunchyroll.com/search?from=search&q=${title.replace(/ /g, '+')}`, (err, resp, body) => {
           if(err)
             return reject(err);
+
           const $ = cheerio.load(body);
           const elem = $('#aux_results li a');
           const url = elem[0] && elem[0].attribs.href;
-          const link = url && url.match(/https?:\/\/www.crunchyroll\.com\/(.+?)\//);
-          if(url && link) {
-            resolve(link[0]);
+          const linkMatch = url && url.match(/https?:\/\/www.crunchyroll\.com\/(.+?)\//);
+          if(url && linkMatch) {
+            resolve(linkMatch[0]);
           } else {
             reject('No videos...');
           }
         });
       });
     }
+
+    // Open the MAL show page and find the "English" or "Synonyms" section on the side bar
     request(`https://myanimelist.net${anime_url}`, async (err, resp, body) => {
       if(err) {
         return tryTitle(anime_title).then(resolve, reject);
       }
 
       try {
+        // Show was found based on the title, easy for shows with English titles!
         return resolve(await tryTitle(anime_title));
       } catch (e) {
         // nothing to do..
       }
 
       const $ = cheerio.load(body);
+
+      // Find the title translations in the side bar
       const elem = $('h2 + div.spaceit_pad > span.dark_text');
       if(elem[0]) {
         switch(elem[0].children[0].data) {
+
+        //  We have a few possible show names, let's go down the list in order
         case 'Synonyms:':
           const titles = elem[0].next.data.split(',').map(t => t.trim());
           for(let i = 0; i < titles.length; i++) {
@@ -88,22 +129,26 @@ function guessCrunchyroll(mal_item) {
               continue;
             }
           }
-          reject('Could not find based on synonyms');
+          // Could not find based on synonyms
+          resolve(null);
           break;
+
+        // We only have one show name and it's probably the right one
         case 'English:':
           try {
             return resolve(await tryTitle(elem[0].next.data.trim()));
           } catch (e) {
-            reject('Could not find based on english title');
+            // Could not find based on english title
+            return resolve(null);
           }
           break;
         }
       }
 
-      reject('Could not find based on standard title');
-    })
-    
-
+      // This means there were no synonyms, english title, the title is in japanese
+      // OR crunchyroll does not have the show
+      resolve(null);
+    });
   });
 }
 
@@ -117,27 +162,111 @@ if(!config.agree_to_license) {
 const program = require('commander')
   .version(require('./package').version);
 
+// Enable/disable console.log/process.stdout.write
+const logBackup = console.log.bind(console);
+const writeBackup = process.stdout.write.bind(process.stdout);
+function setQuiet(enabled) {
+  const none = () => {};
+  console.log = enabled ? none : logBackup;
+  process.stdout.write = enabled ? none : writeBackup;
+}
+
 program
   .command('pull')
   .description('Pull currently watching shows from MyAnimeList and populate config file')
   .action(async () => {
     console.log('Fetching MAL...');
-    const list = await fetchList(config.settings.mal_username);
-    list.forEach(i => {
-      guessCrunchyroll(i).then(a => 
-        console.log(i.anime_title, '=', a),
-      b =>
-        console.log(i.anime_title, '???')
-      );
-    })
+    // Get currently watching shows from MyAnimeList
+    const list = await fetchList(config.settings.myanimelist.username);
+
+    // Find the crunchyroll link for each of the shows
+    const shows = await Promise.all(list.map(async show => ({
+      title: show.anime_title,
+      crunchyroll: await guessCrunchyroll(show),
+      id: show.anime_id,
+      offset: 0,
+    })));
+
+    const beforeLen = (config.shows || []).length;
+
+    // Only add shows that are not already in the list
+    const newShows = (config.shows || []).concat(shows.filter(s => !_.find(config.shows, {id: s.id})));
+
+    // Update the config with the found shows
+    writeConfig(Object.assign(config, {
+      shows: newShows,
+    }));
+
+    console.log('Config Updated!', newShows.length - beforeLen, 'shows added');
   });
 
 program
-  .command('link', 'Find Crunchyroll links for each of the shows in the config file')
-  .action(() => {
-    console.log('foo');
+  .command('cull')
+  .description('Cull shows that are not currently watched from the config file')
+  .action(async () => {
+    console.log('Fetching MAL...');
+    // Get currently watching shows from MyAnimeList
+    const list = await fetchList(config.settings.myanimelist.username);
+    
+    const beforeLen = (config.shows || []).length;
+    console.log(beforeLen);
+
+    // Only remove shows that are not in the currently watching list
+    const newShows = _.filter(config.shows, s => _.find(list, {anime_id: s.id}));
+
+    // Remove shows not in the currently watching list from the config
+    writeConfig(Object.assign(config, {
+      shows: newShows,
+    }));
+
+    console.log('Config Updated!', beforeLen - newShows.length, 'shows removed');
   });
 
+program
+  .command('get')
+  .description('Download latest episodes')
+  .action(async () => {
+    console.log('Fetching MAL...');
+    const list = await fetchList(config.settings.myanimelist.username);
 
-// console.log(batch);
+    // Create the data dir if it doesn't already exist
+    mkdir(config.settings.output_dir);
+    
+    // Build and write a batch file for crunchy
+    const tempBatchPath = fs.realpathSync(config.settings.output_dir) + '/.crunchybatch.txt';
+    const batchContents = _.sortBy( // download higher scored shows first :)
+      config.shows.map(s =>
+        _.merge(s,
+          _.pick(_.find(list, {anime_id: s.id}, {}), // get number of watched episodes
+            ['num_watched_episodes', 'score']
+          )
+        )
+      ),
+      ['score']
+    ).reverse()
+    .map(({crunchyroll: url, offset: o, num_watched_episodes: e}) => 
+      `${url} -e ${o + e + 1}-`
+    ).join('\n');
+    fs.writeFileSync(tempBatchPath, batchContents);
+
+    // Run crunchy with hacked in process args
+    crunchy(process.argv = [
+      '--user', config.settings.crunchyroll.username,
+      '--pass', config.settings.crunchyroll.password,
+      '--nametmpl', '{SERIES_TITLE} - s{SEASON_NUMBER}e{EPISODE_NUMBER}',
+      '--output',  fs.realpathSync(config.settings.output_dir),
+      '--batch', tempBatchPath,
+      '--ignoredub',
+    ], err => {
+
+      if(err)
+        console.error(err);
+
+      fs.unlink(tempBatchPath, err => {
+        err && console.error('Error removing temp file:', err);
+      });
+    });
+  });
+
+// Parse command line args and run commands!
 program.parse(process.argv);
