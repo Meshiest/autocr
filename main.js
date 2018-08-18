@@ -7,6 +7,10 @@ const format = require('string-format');
 const request = require('request');
 const commander = require('commander');
 const cheerio = require('cheerio');
+const { parseString: parseXML } = require('xml2js');
+const chokidar = require('chokidar');
+
+const CR_URL_REGEX = /https?:\/\/www.crunchyroll\.com\/(.+?)\//;
 
 // Create a directory if it does not already exist
 function mkdir(dir) {
@@ -46,11 +50,16 @@ if(!fs.existsSync('config.yml')) {
         username: 'CRUNCHYROLL_USERNAME',
         password: 'CRUNCHYROLL_PASSWORD',
       },
+      feed_interval_mins: 60,
       output_dir: 'downloads',
     },
     shows: null,
   });
 }
+
+// Load config file
+let config = yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
+const TEMP_BATCH_PATH = fs.realpathSync(config.settings.output_dir) + '/.crunchybatch.txt';
 
 // Grabs a user's list in JSON form
 function fetchList(name) {
@@ -64,14 +73,39 @@ function fetchList(name) {
   });
 }
 
+// Get the XML as an object from the Crunchyroll new anime feed
 function fetchFeed() {
   return new Promise((resolve, reject) => {
-    request('http://feeds.feedburner.com/crunchyroll/rss?format=xml', (err, resp, body) => {
+    request('http://www.crunchyroll.com/rss/anime', (err, resp, body) => {
       if(err)
         return reject(err);
-
+      parseXML(body, (err, res) => {
+        if(err)
+          return reject(err);
+        resolve(res);
+      });
     });
   });
+}
+
+// Run the crunchy tool with credentials and config
+function runCrunchy() {
+  crunchy(process.argv = [
+      '--user', config.settings.crunchyroll.username,
+      '--pass', config.settings.crunchyroll.password,
+      '--nametmpl', '{SERIES_TITLE} - s{SEASON_NUMBER}e{EPISODE_NUMBER}',
+      '--output',  fs.realpathSync(config.settings.output_dir),
+      '--batch', TEMP_BATCH_PATH,
+      '--ignoredub',
+    ], err => {
+
+      if(err)
+        console.error(err);
+
+      // fs.existsSync(TEMP_BATCH_PATH) && fs.unlink(TEMP_BATCH_PATH, err => {
+      //   err && console.error('Error removing temp file:', err);
+      // });
+    });
 }
 
 // Try to get the Crunchyroll link by searching for videos based on the MAL show name
@@ -89,7 +123,7 @@ function guessCrunchyroll(mal_item) {
           const $ = cheerio.load(body);
           const elem = $('#aux_results li a');
           const url = elem[0] && elem[0].attribs.href;
-          const linkMatch = url && url.match(/https?:\/\/www.crunchyroll\.com\/(.+?)\//);
+          const linkMatch = url && url.match(CR_URL_REGEX);
           if(url && linkMatch) {
             resolve(linkMatch[0]);
           } else {
@@ -152,8 +186,6 @@ function guessCrunchyroll(mal_item) {
   });
 }
 
-let config = yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
-
 if(!config.agree_to_license) {
   console.error('Before using this software you must read and agree to the LICENSE and set the agree_to_license property to true in the config.yml file');
   process.exit(0);
@@ -163,11 +195,12 @@ const program = require('commander')
   .version(require('./package').version);
 
 // Enable/disable console.log/process.stdout.write
-const logBackup = console.log.bind(console);
+const log = console.log.bind(console);
 const writeBackup = process.stdout.write.bind(process.stdout);
 function setQuiet(enabled) {
   const none = () => {};
-  console.log = enabled ? none : logBackup;
+  console.log = enabled ? none : log;
+  console.log = enabled ? none : log;
   process.stdout.write = enabled ? none : writeBackup;
 }
 
@@ -224,7 +257,7 @@ program
 
 program
   .command('get')
-  .description('Download latest episodes')
+  .description('Download latest episodes all at once')
   .action(async () => {
     console.log('Fetching MAL...');
     const list = await fetchList(config.settings.myanimelist.username);
@@ -233,8 +266,7 @@ program
     mkdir(config.settings.output_dir);
     
     // Build and write a batch file for crunchy
-    const tempBatchPath = fs.realpathSync(config.settings.output_dir) + '/.crunchybatch.txt';
-    const batchContents = _.sortBy( // download higher scored shows first :)
+    const shows = _.sortBy( // download higher scored shows first :)
       config.shows.map(s =>
         _.merge(s,
           _.pick(_.find(list, {anime_id: s.id}, {}), // get number of watched episodes
@@ -247,25 +279,63 @@ program
     .map(({crunchyroll: url, offset: o, num_watched_episodes: e}) => 
       `${url} -e ${o + e + 1}-`
     ).join('\n');
-    fs.writeFileSync(tempBatchPath, batchContents);
+    fs.writeFileSync(TEMP_BATCH_PATH, shows);
 
-    // Run crunchy with hacked in process args
-    crunchy(process.argv = [
-      '--user', config.settings.crunchyroll.username,
-      '--pass', config.settings.crunchyroll.password,
-      '--nametmpl', '{SERIES_TITLE} - s{SEASON_NUMBER}e{EPISODE_NUMBER}',
-      '--output',  fs.realpathSync(config.settings.output_dir),
-      '--batch', tempBatchPath,
-      '--ignoredub',
-    ], err => {
+    runCrunchy();
+  });
 
-      if(err)
-        console.error(err);
+// Check what shows we need to download, crunchy handles not downloading the same thing twice by accident
+async function watchFeed() {
+  const listPromise = fetchList(config.settings.myanimelist.username);
+  const items = (await fetchFeed()).rss.channel[0].item;
+  const list = await listPromise;
+  
+  // Select only items that are in our config "shows" list
+  const toDownload = items.filter(i => i['crunchyroll:episodeNumber']).map(i => ({
+    date: i.pubDate[0],
+    episode: +i['crunchyroll:episodeNumber'][0],
+    ... (_.find(config.shows || [], {crunchyroll: i.link[0].match(CR_URL_REGEX)[0]}) || {})
+  }))
+  .filter(i => i.title)
+  .filter(i => {
+    const malEntry = _.find(list, {anime_id: i.id}, {});
+    return malEntry && malEntry.num_watched_episodes < i.episode;
+  });
 
-      fs.unlink(tempBatchPath, err => {
-        err && console.error('Error removing temp file:', err);
-      });
+  // Create the data dir if it doesn't already exist
+  mkdir(config.settings.output_dir);
+  
+  // Build and write a batch file for crunchy
+  const shows = toDownload.map(({crunchyroll: url, offset: o, episode: e}) => 
+    `${url} -e ${o + e}`
+  ).join('\n');
+  fs.writeFileSync(TEMP_BATCH_PATH, shows);
+
+  runCrunchy();
+}
+
+program
+  .command('watch')
+  .description('Download latest episodes as they come out on CrunchyRoll')
+  .action(() => {
+    const watcher = chokidar.watch('file', {
+      persistent: true,
+      ignoreInitial: true
     });
+
+    watcher
+      .on('add', path =>  {
+        path.match(/\.mp4$/) && log('Starting', path.match(/([^\/\\]+)\.mp4$/)[1]);
+        path.match(/\.mkv$/) && log('Finished', path.match(/([^\/\\]+)\.mkv$/)[1]);
+      });
+      
+    watcher.add(config.settings.output_dir + '/**');
+    
+    console.log('Starting CR Feed Watching...');
+
+    setQuiet(true);
+    watchFeed();
+    setInterval(watchFeed, Math.max(config.settings.feed_interval_mins, 15) * 60000);
   });
 
 // Parse command line args and run commands!

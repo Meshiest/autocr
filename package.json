@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
+    "chokidar": "^2.0.4",
     "commander": "^2.17.1",
     "crunchy": "^1.4.3",
     "js-yaml": "^3.12.0",
