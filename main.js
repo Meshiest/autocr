@@ -102,9 +102,9 @@ function runCrunchy() {
       if(err)
         console.error(err);
 
-      // fs.existsSync(TEMP_BATCH_PATH) && fs.unlink(TEMP_BATCH_PATH, err => {
-      //   err && console.error('Error removing temp file:', err);
-      // });
+      fs.existsSync(TEMP_BATCH_PATH) && fs.unlink(TEMP_BATCH_PATH, err => {
+        err && console.error('Error removing temp file:', err);
+      });
     });
 }
 

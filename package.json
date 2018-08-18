@@ -1,12 +1,22 @@
 {
-  "name": "autome",
+  "name": "autocr",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/meshiest/autocr.git"
+  },
   "version": "1.0.0",
-  "description": "An automatic anime downloader given a myanimelist and a crunchyroll account",
+  "description": "An automatic anime downloader given a MyAnimeList and a Crunchyroll account",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node ./bin/autocr"
   },
-  "author": "Meshiest/Isaac",
+  "author": "Meshiest",
+  "engines": {
+    "node": ">=8.1"
+  },
+  "bin": {
+    "autocr": "./bin/autocr"
+  },
   "license": "MIT",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
