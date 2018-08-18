@@ -9,6 +9,8 @@ const commander = require('commander');
 const cheerio = require('cheerio');
 const { parseString: parseXML } = require('xml2js');
 const chokidar = require('chokidar');
+const path = require('path');
+const dateFormat = require('dateformat');
 
 const CR_URL_REGEX = /https?:\/\/www.crunchyroll\.com\/(.+?)\//;
 
@@ -192,14 +194,18 @@ if(!config.agree_to_license) {
 }
 
 const program = require('commander')
-  .version(require('./package').version);
+  .description('autocr automates downloading anime from CrunchyRoll')
+  .version(require('./package').version)
+  .action(async show => {
+    console.error('Invalid command. See --help for a list of available commands.');
+    process.exit(1);
+  });
 
 // Enable/disable console.log/process.stdout.write
 const log = console.log.bind(console);
 const writeBackup = process.stdout.write.bind(process.stdout);
 function setQuiet(enabled) {
   const none = () => {};
-  console.log = enabled ? none : log;
   console.log = enabled ? none : log;
   process.stdout.write = enabled ? none : writeBackup;
 }
@@ -208,7 +214,7 @@ program
   .command('pull')
   .description('Pull currently watching shows from MyAnimeList and populate config file')
   .action(async () => {
-    console.log('Fetching MAL...');
+    log('Fetching MAL...');
     // Get currently watching shows from MyAnimeList
     const list = await fetchList(config.settings.myanimelist.username);
 
@@ -230,35 +236,35 @@ program
       shows: newShows,
     }));
 
-    console.log('Config Updated!', newShows.length - beforeLen, 'shows added');
+    log('Config Updated!', newShows.length - beforeLen, 'shows added');
   });
 
 program
   .command('cull')
   .description('Cull shows that are not currently watched from the config file')
   .action(async () => {
-    console.log('Fetching MAL...');
+    log('Fetching MAL...');
     // Get currently watching shows from MyAnimeList
     const list = await fetchList(config.settings.myanimelist.username);
     
     const beforeLen = (config.shows || []).length;
 
     // Only remove shows that are not in the currently watching list
-    const newShows = _.filter(config.shows, s => _.find(list, {anime_id: s.id}));
+    const newShows = _.filter(config.shows || [], s => _.find(list, {anime_id: s.id}));
 
     // Remove shows not in the currently watching list from the config
     writeConfig(Object.assign(config, {
       shows: newShows,
     }));
 
-    console.log('Config Updated!', beforeLen - newShows.length, 'shows removed');
+    log('Config Updated!', beforeLen - newShows.length, 'shows removed');
   });
 
 program
   .command('get')
   .description('Download latest episodes all at once')
   .action(async () => {
-    console.log('Fetching MAL...');
+    log('Fetching MAL...');
     const list = await fetchList(config.settings.myanimelist.username);
 
     // Create the data dir if it doesn't already exist
@@ -266,7 +272,7 @@ program
     
     // Build and write a batch file for crunchy
     const shows = _.sortBy( // download higher scored shows first :)
-      config.shows.map(s =>
+      (config.shows || []).map(s =>
         _.merge(s,
           _.pick(_.find(list, {anime_id: s.id}, {}), // get number of watched episodes
             ['num_watched_episodes', 'score']
@@ -288,7 +294,7 @@ async function watchFeed() {
   const listPromise = fetchList(config.settings.myanimelist.username);
   const items = (await fetchFeed()).rss.channel[0].item;
   const list = await listPromise;
-  
+
   // Select only items that are in our config "shows" list
   const toDownload = items.filter(i => i['crunchyroll:episodeNumber']).map(i => ({
     date: i.pubDate[0],
@@ -330,11 +336,120 @@ program
       
     watcher.add(config.settings.output_dir + '/**');
     
-    console.log('Starting CR Feed Watching...');
+    log('Starting CR Feed Watching...');
 
     setQuiet(true);
     watchFeed();
     setInterval(watchFeed, Math.max(config.settings.feed_interval_mins, 15) * 60000);
+  });
+
+let anichartHeaders;
+// Cache headers needed for anichart api requests
+function getACHeaders() {
+  return new Promise((resolve, reject) => {
+    if(anichartHeaders) 
+      resolve(anichartHeaders);
+    else {      
+      request('http://anichart.net', (err, req, body) => {
+        if(err)
+          reject(err);
+        else
+          resolve(anichartHeaders = {
+            'X-CSRF-TOKEN': req.headers['set-cookie'][0].match(/XSRF-TOKEN=(.+?);/)[1],
+            Cookie: req.headers['set-cookie'].map(str => str.match(/^(.+?);/)[1]).join(';')
+          });
+      });
+    }
+  });
+}
+
+// Grab a free api token and run an api command
+function anichart(url) {
+  return new Promise(async (resolve, reject) => {
+    request({
+      url,
+      headers: await getACHeaders(),
+    }, (err, req, body) => {
+      if(err)
+        reject(err);
+      else
+        resolve(JSON.parse(body))
+    });
+  });
+}
+
+// Format seconds into a countdown string (3d 2h 1m)
+function countdown(secs) {
+  let str = '';
+  if(secs > 60 * 60 * 24)
+    str += Math.floor(secs / 60 / 60 / 24) + 'd ';
+
+  if(secs > 60 * 60)
+    str += Math.floor(secs / 60 / 60) % 24 + 'h ';
+
+  if(secs > 60)
+    str += Math.floor(secs / 60) % 60 + 'm ';
+  else
+    str = 'just now';
+  return str.trim();
+}
+
+program
+  .command('airing')
+  .description('View currently airing shows')
+  .option('-a, --all', 'Show all series information')
+  .option('-d, --description', 'Show series descriptions')
+  .option('-e, --english', 'Show series english titles')
+  .option('-t, --time', 'Show time until next episode')
+  .option('-r, --rating', 'Show series ratings')
+  .option('-g, --genre', 'Show series genre')
+  .option('-m, --minimal', 'Show only times and romaji titles')
+  .action(async flags => {
+    flags = Object.keys(flags);
+    const minimal = flags.includes('minimal');
+    const hasFlag = flags.includes('all') ? () => true : flags.includes.bind(flags);
+
+    log('Fetching AniChart...');
+    const airing = await anichart('http://anichart.net/api/airing');
+
+    // Only display shows with crunchyroll links
+    const filtered = _.mapValues(airing, shows =>
+      shows.filter(show => _.find(show.external_links, {site: 'Crunchyroll'}))
+    );
+
+    // Display shows ordered in monday first week day order
+    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+      log(` ---- ${day[0].toUpperCase() + day.slice(1)} ----`);
+      _.sortBy(filtered[day], 'airing.time').forEach(show => {
+        const time = dateFormat(new Date(show.airing.time * 1000), 'hh:MM TT');
+
+        if(minimal)
+          return log(`  ${time} - ${show.title_romaji}`);
+
+        const crLink = _.find(show.external_links, {site: 'Crunchyroll'}).url;
+
+        log(
+`  ${time} - ${show.title_romaji} ${
+  hasFlag('time')
+    ? `(ep ${show.airing.next_episode}/${show.total_episodes || '?'} @ ${countdown(show.airing.countdown)})`
+    : ''
+}${hasFlag('english') ? `
+    Title: ${show.title_english}` : ''}
+      MAL: ${show.mal_link}
+       CR: ${crLink}${
+  hasFlag('description') ? `
+     Desc: ${show.description.replace(/<br>|(\n+\(Source: .+\))/g, '')}`
+   : ''}${
+  hasFlag('rating') ? `
+    Score: ${Math.floor(show.average_score/10)}/10`
+   : ''}${
+  hasFlag('genre') ? `
+    Genre: ${show.genres.filter(g => g).join(', ')}`
+   : ''}
+`);
+      });
+      log('\n');
+    });
   });
 
 // Parse command line args and run commands!
