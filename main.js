@@ -242,7 +242,6 @@ program
     const list = await fetchList(config.settings.myanimelist.username);
     
     const beforeLen = (config.shows || []).length;
-    console.log(beforeLen);
 
     // Only remove shows that are not in the currently watching list
     const newShows = _.filter(config.shows, s => _.find(list, {anime_id: s.id}));
@@ -299,7 +298,7 @@ async function watchFeed() {
   .filter(i => i.title)
   .filter(i => {
     const malEntry = _.find(list, {anime_id: i.id}, {});
-    return malEntry && malEntry.num_watched_episodes < i.episode;
+    return malEntry && malEntry.num_watched_episodes < i.episode - i.offset;
   });
 
   // Create the data dir if it doesn't already exist
@@ -307,7 +306,7 @@ async function watchFeed() {
   
   // Build and write a batch file for crunchy
   const shows = toDownload.map(({crunchyroll: url, offset: o, episode: e}) => 
-    `${url} -e ${o + e}`
+    `${url} -e ${e}-`
   ).join('\n');
   fs.writeFileSync(TEMP_BATCH_PATH, shows);
 
