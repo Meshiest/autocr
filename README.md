@@ -22,6 +22,22 @@ This application is not endorsed or affliated with CrunchyRoll or MyAnimeList. T
 5. `npm install $(pwd)` - Update your PATH to have `autocr`
 6. `autocr --help` - Create default config file and view help text
 
+## Commands
+
+    pull                 Pull currently watching shows from MyAnimeList and populate config file
+    cull                 Cull shows that are not currently watched from the config file
+    get                  Download latest episodes all at once
+    watch                Download latest episodes as they come out on CrunchyRoll
+    airing [options]     View currently airing shows
+      -a, --all          Show all series information
+      -d, --description  Show series descriptions
+      -e, --english      Show series english titles
+      -t, --time         Show time until next episode
+      -r, --rating       Show series ratings
+      -g, --genre        Show series genre
+      -m, --minimal      Show only times and romaji titles
+      -h, --help         output usage information
+
 ## Notes
 
 * `autocr pull` will sometimes add shows that are not on crunchyroll, you will need to browse your config.yml to ensure you only have shows you want
