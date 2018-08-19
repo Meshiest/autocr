@@ -39,28 +39,8 @@ Array.prototype.syncMap = async function (fn) {
   return arr;
 };
 
-// Create the default config file
-if(!fs.existsSync('config.yml')) {
-  console.log('Remember to update the default values in your newly created config.yml!');
-  writeConfig({
-    agree_to_license: false,
-    settings: {
-      myanimelist: {
-        username: 'MAL_USERNAME',
-      },
-      crunchyroll: {
-        username: 'CRUNCHYROLL_USERNAME',
-        password: 'CRUNCHYROLL_PASSWORD',
-      },
-      feed_interval_mins: 60,
-      output_dir: 'downloads',
-    },
-    shows: null,
-  });
-}
-
 // Load config file
-let config = yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
+let config = fs.existsSync('config.yml') && yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
 const TEMP_BATCH_PATH = fs.realpathSync(config.settings.output_dir) + '/.crunchybatch.txt';
 
 // Grabs a user's list in JSON form
@@ -216,6 +196,9 @@ program
   .command('pull')
   .description('Pull currently watching shows from MyAnimeList and populate config file')
   .action(async () => {
+    if(!config)
+      return log('config.yml does not exist! run autocr init to create one');
+
     log('Fetching MAL...');
     // Get currently watching shows from MyAnimeList
     const list = await fetchList(config.settings.myanimelist.username);
@@ -245,6 +228,9 @@ program
   .command('cull')
   .description('Cull shows that are not currently watched from the config file')
   .action(async () => {
+    if(!config)
+      return log('config.yml does not exist! run autocr init to create one');
+
     log('Fetching MAL...');
     // Get currently watching shows from MyAnimeList
     const list = await fetchList(config.settings.myanimelist.username);
@@ -266,6 +252,9 @@ program
   .command('get')
   .description('Download latest episodes all at once')
   .action(async () => {
+    if(!config)
+      return log('config.yml does not exist! run autocr init to create one');
+
     log('Fetching MAL...');
     const list = await fetchList(config.settings.myanimelist.username);
 
@@ -325,6 +314,9 @@ program
   .command('watch')
   .description('Download latest episodes as they come out on CrunchyRoll')
   .action(() => {
+    if(!config)
+      return log('config.yml does not exist! run autocr init to create one');
+
     const watcher = chokidar.watch('file', {
       persistent: true,
       ignoreInitial: true
@@ -411,6 +403,10 @@ program
     flags = Object.keys(flags);
     const minimal = flags.includes('minimal');
     const listOnly = flags.includes('list');
+
+    if(!config && listOnly)
+      return log('config.yml does not exist! run autocr init to create one');
+
     const hasFlag = flags.includes('all') ? () => true : flags.includes.bind(flags);
 
     log('Fetching AniChart...');
@@ -475,15 +471,44 @@ program
     const hasFlag = flags.includes.bind(flags);
     try {
       const url = await searchCrunchyroll(title);
-      if(hasFlag('download'))
+      if(hasFlag('download')) {
+        if(!config)
+          return log('config.yml does not exist! run autocr init to create one');
         runCrunchy(url);
-      else
+      } else
         log(url);
     } catch (e) {
       console.error(e);
       process.exit(1);
     }
   });
+
+program
+  .command('init')
+  .description('Creates the default config.yml if it does not already exist')
+  .action(() => {
+    // Create the default config file
+    if(!fs.existsSync('config.yml')) {
+      log('Remember to update the default values in your newly created config.yml!');
+      writeConfig({
+        agree_to_license: false,
+        settings: {
+          myanimelist: {
+            username: 'MAL_USERNAME',
+          },
+          crunchyroll: {
+            username: 'CRUNCHYROLL_USERNAME',
+            password: 'CRUNCHYROLL_PASSWORD',
+          },
+          feed_interval_mins: 60,
+          output_dir: 'downloads',
+        },
+        shows: null,
+      });
+    } else {
+      log('config.yml already exists!');
+    }
+  })
 
 // Parse command line args and run commands!
 program.parse(process.argv);

@@ -1,6 +1,12 @@
 # Auto Crunchy (autocr)
 
-This handy dandy tool automagically runs the [crunchy](https://github.com/Godzil/Crunchy) tool to download the shows you say you are watching on MyAnimeList! Also lets you browse airing shows with help from AniChart!
+This handy dandy anime tool automates a number of things to provide the laziest experience possible!
+
+1. Interfaces with [Crunchy](https://github.com/Godzil/Crunchy) to download shows!
+2. Interfaces with [MyAnimeList](https://myanimelist.net/) to know what you're watching!
+3. Interfaces with [AniChart](http://anichart.net/) to browse airing shows!
+
+The only features that do not require a config file are: `autocr search` and `autocr airing`
 
 ## Legal Warning
 
@@ -20,7 +26,7 @@ This application is not endorsed or affliated with CrunchyRoll, MyAnimeList, or 
 3. `npm install` - Install node dependencies
 4. `npm link` - Add this library to your node_modules
 5. `npm install $(pwd)` - Update your PATH to have `autocr`
-6. `autocr --help` - Create default config file and view help text
+6. `autocr init` - Create default config file in current directory
 
 ## Commands
 
@@ -41,9 +47,11 @@ This application is not endorsed or affliated with CrunchyRoll, MyAnimeList, or 
     search [options] <title>  Search CrunchyRoll for the given title and return a crunchyroll link
       -d, --download          Download the entire show from the search result
       -h, --help              output usage information
+    init                      Creates the default config.yml if it does not already exist
 
 
 ## Notes
 
 * `autocr pull` will sometimes add shows that are not on crunchyroll, you will need to browse your config.yml to ensure you only have shows you want
 * `autocr get` will download everything AFTER the currently watched episode. If you want to download the entire show, use `crunchy` until some form of `autocr all` is developed
+* `autocr search` requires quotes when searching for multi word titles (`autocr search "my github academia"`)
