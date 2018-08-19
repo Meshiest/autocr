@@ -402,13 +402,15 @@ program
   .option('-a, --all', 'Show all series information')
   .option('-d, --description', 'Show series descriptions')
   .option('-e, --english', 'Show series english titles')
-  .option('-t, --time', 'Show time until next episode')
-  .option('-r, --rating', 'Show series ratings')
   .option('-g, --genre', 'Show series genre')
+  .option('-l, --list', 'Only display shows in the config file shows list')
   .option('-m, --minimal', 'Show only times and romaji titles')
+  .option('-r, --rating', 'Show series ratings')
+  .option('-t, --time', 'Show time until next episode')
   .action(async flags => {
     flags = Object.keys(flags);
     const minimal = flags.includes('minimal');
+    const listOnly = flags.includes('list');
     const hasFlag = flags.includes('all') ? () => true : flags.includes.bind(flags);
 
     log('Fetching AniChart...');
@@ -416,12 +418,22 @@ program
 
     // Only display shows with crunchyroll links
     const filtered = _.mapValues(airing, shows =>
-      shows.filter(show => _.find(show.external_links, {site: 'Crunchyroll'}))
+      shows.filter(show => {
+        const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
+        if(listOnly && crLink) {
+          return _.find((config.shows || []), s => s.crunchyroll.match(crLink.url));
+        }
+        return crLink;
+      })
     );
+
 
     // Display shows ordered in monday first week day order
     ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
       log(` ---- ${day[0].toUpperCase() + day.slice(1)} ----`);
+      if(filtered[day].length === 0)
+        log(`  Nothing ${day}!`);
+      
       _.sortBy(filtered[day], 'airing.time').forEach(show => {
         const time = dateFormat(new Date(show.airing.time * 1000), 'hh:MM TT');
 
