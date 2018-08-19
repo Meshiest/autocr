@@ -91,14 +91,15 @@ function fetchFeed() {
 }
 
 // Run the crunchy tool with credentials and config
-function runCrunchy() {
+// If the show prop is given, do not run batch operations
+function runCrunchy(show) {
   crunchy(process.argv = [
       '--user', config.settings.crunchyroll.username,
       '--pass', config.settings.crunchyroll.password,
       '--nametmpl', '{SERIES_TITLE} - s{SEASON_NUMBER}e{EPISODE_NUMBER}',
       '--output',  fs.realpathSync(config.settings.output_dir),
-      '--batch', TEMP_BATCH_PATH,
       '--ignoredub',
+      ...(show ? [show] : ['--batch', TEMP_BATCH_PATH])
     ], err => {
 
       if(err)
@@ -110,40 +111,41 @@ function runCrunchy() {
     });
 }
 
+
+// Search crunchyroll and resolve if we found a video
+function searchCrunchyroll(title) {
+  return new Promise((resolve, reject) => {
+    request(`http://www.crunchyroll.com/search?from=search&q=${title.replace(/ /g, '+')}`, (err, resp, body) => {
+      if(err)
+        return reject(err);
+
+      const $ = cheerio.load(body);
+      const elem = $('#aux_results li a');
+      const url = elem[0] && elem[0].attribs.href;
+      const linkMatch = url && url.match(CR_URL_REGEX);
+      if(url && linkMatch) {
+        resolve(linkMatch[0]);
+      } else {
+        reject('No videos...');
+      }
+    });
+  });
+}
+
 // Try to get the Crunchyroll link by searching for videos based on the MAL show name
-function guessCrunchyroll(mal_item) {
+function guessFromMAL(mal_item) {
   return new Promise((resolve, reject) => {
     const {anime_url, anime_title} = mal_item;
-
-    // Search crunchyroll and resolve if we found a video
-    function tryTitle(title) {
-      return new Promise((resolve, reject) => {
-        request(`http://www.crunchyroll.com/search?from=search&q=${title.replace(/ /g, '+')}`, (err, resp, body) => {
-          if(err)
-            return reject(err);
-
-          const $ = cheerio.load(body);
-          const elem = $('#aux_results li a');
-          const url = elem[0] && elem[0].attribs.href;
-          const linkMatch = url && url.match(CR_URL_REGEX);
-          if(url && linkMatch) {
-            resolve(linkMatch[0]);
-          } else {
-            reject('No videos...');
-          }
-        });
-      });
-    }
 
     // Open the MAL show page and find the "English" or "Synonyms" section on the side bar
     request(`https://myanimelist.net${anime_url}`, async (err, resp, body) => {
       if(err) {
-        return tryTitle(anime_title).then(resolve, reject);
+        return searchCrunchyroll(anime_title).then(resolve, reject);
       }
 
       try {
         // Show was found based on the title, easy for shows with English titles!
-        return resolve(await tryTitle(anime_title));
+        return resolve(await searchCrunchyroll(anime_title));
       } catch (e) {
         // nothing to do..
       }
@@ -190,7 +192,7 @@ function guessCrunchyroll(mal_item) {
 
 if(!config.agree_to_license) {
   console.error('Before using this software you must read and agree to the LICENSE and set the agree_to_license property to true in the config.yml file');
-  process.exit(0);
+  process.exit(1);
 }
 
 const program = require('commander')
@@ -221,7 +223,7 @@ program
     // Find the crunchyroll link for each of the shows
     const shows = await Promise.all(list.map(async show => ({
       title: show.anime_title,
-      crunchyroll: await guessCrunchyroll(show),
+      crunchyroll: await guessFromMAL(show),
       id: show.anime_id,
       offset: 0,
     })));
@@ -450,6 +452,25 @@ program
       });
       log('\n');
     });
+  });
+
+program
+  .command('search <title>')
+  .option('-d, --download', 'Download the entire show from the search result')
+  .description('Search CrunchyRoll for the given title and return a crunchyroll link')
+  .action(async (title, flags) => {
+    flags = Object.keys(flags);
+    const hasFlag = flags.includes.bind(flags);
+    try {
+      const url = await searchCrunchyroll(title);
+      if(hasFlag('download'))
+        runCrunchy(url);
+      else
+        log(url);
+    } catch (e) {
+      console.error(e);
+      process.exit(1);
+    }
   });
 
 // Parse command line args and run commands!

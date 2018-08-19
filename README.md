@@ -24,19 +24,23 @@ This application is not endorsed or affliated with CrunchyRoll or MyAnimeList. T
 
 ## Commands
 
-    pull                 Pull currently watching shows from MyAnimeList and populate config file
-    cull                 Cull shows that are not currently watched from the config file
-    get                  Download latest episodes all at once
-    watch                Download latest episodes as they come out on CrunchyRoll
-    airing [options]     View currently airing shows
-      -a, --all          Show all series information
-      -d, --description  Show series descriptions
-      -e, --english      Show series english titles
-      -t, --time         Show time until next episode
-      -r, --rating       Show series ratings
-      -g, --genre        Show series genre
-      -m, --minimal      Show only times and romaji titles
-      -h, --help         output usage information
+    pull                      Pull currently watching shows from MyAnimeList and populate config file
+    cull                      Cull shows that are not currently watched from the config file
+    get                       Download latest episodes all at once
+    watch                     Download latest episodes as they come out on CrunchyRoll
+    airing [options]          View currently airing shows
+      -a, --all               Show all series information
+      -d, --description       Show series descriptions
+      -e, --english           Show series english titles
+      -t, --time              Show time until next episode
+      -r, --rating            Show series ratings
+      -g, --genre             Show series genre
+      -m, --minimal           Show only times and romaji titles
+      -h, --help              output usage information
+    search [options] <title>  Search CrunchyRoll for the given title and return a crunchyroll link
+      -d, --download          Download the entire show from the search result
+      -h, --help              output usage information
+
 
 ## Notes
 
