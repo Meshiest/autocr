@@ -1,10 +1,10 @@
 # Auto Crunchy (autocr)
 
-This handy dandy tool automagically runs the [crunchy](https://github.com/Godzil/Crunchy) tool to download the shows you say you are watching on MyAnimeList!
+This handy dandy tool automagically runs the [crunchy](https://github.com/Godzil/Crunchy) tool to download the shows you say you are watching on MyAnimeList! Also lets you browse airing shows with help from AniChart!
 
 ## Legal Warning
 
-This application is not endorsed or affliated with CrunchyRoll or MyAnimeList. The usage of this application enables episodes to be downloaded for offline convenience which may be forbidden by law in your country. Usage of this application may also cause a violation of the agreed Terms of Service between you and the stream provider. A tool is not responsible for your actions; please make an informed decision prior to using this application.
+This application is not endorsed or affliated with CrunchyRoll, MyAnimeList, or AniChart. The usage of this application enables episodes to be downloaded for offline convenience which may be forbidden by law in your country. Usage of this application may also cause a violation of the agreed Terms of Service between you and the stream provider. A tool is not responsible for your actions; please make an informed decision prior to using this application.
 
 ***ONLY* USE THIS TOOL IF YOU HAVE A *PREMIUM* CRUNCHYROLL ACCOUNT**
 
@@ -28,7 +28,7 @@ This application is not endorsed or affliated with CrunchyRoll or MyAnimeList. T
     cull                      Cull shows that are not currently watched from the config file
     get                       Download latest episodes all at once
     watch                     Download latest episodes as they come out on CrunchyRoll
-    airing [options]          View currently airing shows
+    airing [options]          View currently airing shows from AniChart
       -a, --all               Show all series information
       -d, --description       Show series descriptions
       -e, --english           Show series english titles

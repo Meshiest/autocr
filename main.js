@@ -398,7 +398,7 @@ function countdown(secs) {
 
 program
   .command('airing')
-  .description('View currently airing shows')
+  .description('View currently airing shows from AniChart')
   .option('-a, --all', 'Show all series information')
   .option('-d, --description', 'Show series descriptions')
   .option('-e, --english', 'Show series english titles')
@@ -433,7 +433,7 @@ program
       log(` ---- ${day[0].toUpperCase() + day.slice(1)} ----`);
       if(filtered[day].length === 0)
         log(`  Nothing ${day}!`);
-      
+
       _.sortBy(filtered[day], 'airing.time').forEach(show => {
         const time = dateFormat(new Date(show.airing.time * 1000), 'hh:MM TT');
 
