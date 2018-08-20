@@ -372,20 +372,11 @@ function anichart(url) {
   });
 }
 
-// Format seconds into a countdown string (3d 2h 1m)
+// Format seconds into a countdown clock string (3d 02h 01m)
 function countdown(secs) {
-  let str = '';
-  if(secs > 60 * 60 * 24)
-    str += Math.floor(secs / 60 / 60 / 24) + 'd ';
+  function pad(t) { return t < 10 ? '0' + t : t}
 
-  if(secs > 60 * 60)
-    str += Math.floor(secs / 60 / 60) % 24 + 'h ';
-
-  if(secs > 60)
-    str += Math.floor(secs / 60) % 60 + 'm ';
-  else
-    str = 'just now';
-  return str.trim();
+  return `${Math.floor(secs / 60 / 60 / 24)}d ${pad(Math.floor(secs / 60 / 60) % 24)}h ${pad(Math.floor(secs / 60) % 60)}m`;
 }
 
 program
@@ -403,6 +394,7 @@ program
     flags = Object.keys(flags);
     const minimal = flags.includes('minimal');
     const listOnly = flags.includes('list');
+    const showTime = flags.includes('time');
 
     if(!config && listOnly)
       return log('config.yml does not exist! run autocr init to create one');
@@ -434,16 +426,13 @@ program
         const time = dateFormat(new Date(show.airing.time * 1000), 'hh:MM TT');
 
         if(minimal)
-          return log(`  ${time} - ${show.title_romaji}`);
+          return log(`  ${time}${showTime ? ` [${countdown(show.airing.countdown)}]` : ''} - ${show.title_romaji}${showTime ? ` - ${show.airing.next_episode}/${show.total_episodes || '?'}`: ''}`);
 
         const crLink = _.find(show.external_links, {site: 'Crunchyroll'}).url;
 
         log(
-`  ${time} - ${show.title_romaji} ${
-  hasFlag('time')
-    ? `(ep ${show.airing.next_episode}/${show.total_episodes || '?'} @ ${countdown(show.airing.countdown)})`
-    : ''
-}${hasFlag('english') ? `
+`  ${time}${showTime ? ` [${countdown(show.airing.countdown)}]` : ''} - ${show.title_romaji}${showTime ? ` - ${show.airing.next_episode}/${show.total_episodes || '?'}`: ''} ${
+  hasFlag('english') ? `
     Title: ${show.title_english}` : ''}
       MAL: ${show.mal_link}
        CR: ${crLink}${
