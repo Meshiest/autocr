@@ -290,6 +290,7 @@ async function watchFeed() {
   const toDownload = items.filter(i => i['crunchyroll:episodeNumber']).map(i => ({
     date: i.pubDate[0],
     episode: +i['crunchyroll:episodeNumber'][0],
+    link: i.link,
     ... (_.find(config.shows || [], {crunchyroll: i.link[0].match(CR_URL_REGEX)[0]}) || {})
   }))
   .filter(i => i.title)
@@ -302,9 +303,7 @@ async function watchFeed() {
   mkdir(config.settings.output_dir);
   
   // Build and write a batch file for crunchy
-  const shows = toDownload.map(({crunchyroll: url, offset: o, episode: e}) => 
-    `${url} -e ${e}-`
-  ).join('\n');
+  const shows = toDownload.map(({link}) => '@' + link).join('\n');
   fs.writeFileSync(TEMP_BATCH_PATH, shows);
 
   runCrunchy();
