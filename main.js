@@ -323,8 +323,10 @@ program
 
     watcher
       .on('add', path =>  {
+        setQuiet(false);
         path.match(/\.mp4$/) && log('Starting', path.match(/([^\/\\]+)\.mp4$/)[1]);
         path.match(/\.mkv$/) && log('Finished', path.match(/([^\/\\]+)\.mkv$/)[1]);
+        setQuiet(true);
       });
       
     watcher.add(config.settings.output_dir + '/**');
