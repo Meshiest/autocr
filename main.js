@@ -41,7 +41,7 @@ Array.prototype.syncMap = async function (fn) {
 
 // Load config file
 let config = fs.existsSync('config.yml') && yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
-const TEMP_BATCH_PATH = fs.realpathSync(config.settings.output_dir) + '/.crunchybatch.txt';
+const TEMP_BATCH_PATH = (config ? fs.realpathSync(config.settings.output_dir) + '/' : '') + '.crunchybatch.txt';
 
 // Grabs a user's list in JSON form
 function fetchList(name) {
