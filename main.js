@@ -170,7 +170,7 @@ function guessFromMAL(mal_item) {
   });
 }
 
-if(!config.agree_to_license) {
+if(config && !config.agree_to_license) {
   console.error('Before using this software you must read and agree to the LICENSE and set the agree_to_license property to true in the config.yml file');
   process.exit(1);
 }
