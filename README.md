@@ -41,6 +41,7 @@ This application is not endorsed or affliated with CrunchyRoll, MyAnimeList, or 
       -g, --genre             Show series genre
       -h, --help              output usage information
       -l, --list              Only display shows in the config file shows list
+      -L, --animelist         Only display shows in the config MyAnimeList
       -m, --minimal           Show only times and romaji titles
       -r, --rating            Show series ratings
       -t, --time              Show time until next episode

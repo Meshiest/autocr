@@ -41,6 +41,7 @@ Array.prototype.syncMap = async function (fn) {
 
 // Load config file
 let config = fs.existsSync('config.yml') && yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
+config && mkdir(config.settings.output_dir);
 const TEMP_BATCH_PATH = (config ? fs.realpathSync(config.settings.output_dir) + '/' : '') + '.crunchybatch.txt';
 
 // Grabs a user's list in JSON form
@@ -388,6 +389,7 @@ program
   .option('-e, --english', 'Show series english titles')
   .option('-g, --genre', 'Show series genre')
   .option('-l, --list', 'Only display shows in the config file shows list')
+  .option('-L, --animelist', 'Only display shows in the config MyAnimeList')
   .option('-m, --minimal', 'Show only times and romaji titles')
   .option('-r, --rating', 'Show series ratings')
   .option('-t, --time', 'Show time until next episode')
@@ -395,24 +397,35 @@ program
     flags = Object.keys(flags);
     const minimal = flags.includes('minimal');
     const listOnly = flags.includes('list');
+    const animeListOnly = flags.includes('animelist');
     const showTime = flags.includes('time');
 
-    if(!config && listOnly)
+    if(!config && (listOnly || animeListOnly))
       return log('config.yml does not exist! run autocr init to create one');
 
     const hasFlag = flags.includes('all') ? () => true : flags.includes.bind(flags);
 
     log('Fetching AniChart...');
+    animeListOnly && log('Fetching MyAnimeList...');
+    const malPromise = animeListOnly && fetchList(config.settings.myanimelist.username);
     const airing = await anichart('http://anichart.net/api/airing');
+    const mal = malPromise ? await malPromise : [];
 
     // Only display shows with crunchyroll links
     const filtered = _.mapValues(airing, shows =>
       shows.filter(show => {
+        
+        if(animeListOnly) {
+          const malId = show.mal_link.match(/\d+$/);
+          return malId && _.find(mal, {anime_id: parseInt(malId[0])});
+        }
+
         const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
         if(listOnly && crLink) {
           return _.find((config.shows || []), s => s.crunchyroll.match(crLink.url));
         }
-        return crLink;
+
+        return animeListOnly || crLink;
       })
     );
 
@@ -429,14 +442,14 @@ program
         if(minimal)
           return log(`  ${time}${showTime ? ` [${countdown(show.airing.countdown)}]` : ''} - ${show.title_romaji}${showTime ? ` - ${show.airing.next_episode}/${show.total_episodes || '?'}`: ''}`);
 
-        const crLink = _.find(show.external_links, {site: 'Crunchyroll'}).url;
+        const crLink = (_.find(show.external_links, {site: 'Crunchyroll'}) || {}).url;
 
         log(
 `  ${time}${showTime ? ` [${countdown(show.airing.countdown)}]` : ''} - ${show.title_romaji}${showTime ? ` - ${show.airing.next_episode}/${show.total_episodes || '?'}`: ''} ${
   hasFlag('english') ? `
     Title: ${show.title_english}` : ''}
       MAL: ${show.mal_link}
-       CR: ${crLink}${
+       CR: ${crLink || 'n/a'}${
   hasFlag('description') ? `
      Desc: ${show.description.replace(/<br>|(\n+\(Source: .+\))/g, '')}`
    : ''}${
