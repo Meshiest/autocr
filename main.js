@@ -511,7 +511,38 @@ program
     } else {
       log('config.yml already exists!');
     }
-  })
+  });
+
+program
+  .command('todo')
+  .description('Figure out which episodes have not been watched')
+  .action(async flags => {
+    if(!config)
+      return log('config.yml does not exist! run autocr init to create one');
+
+    log('Fetching AniChart and MyAnimeList...');
+    const malPromise = fetchList(config.settings.myanimelist.username);
+    const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
+    const mal = await malPromise;
+
+    mal.map(show => {
+      const base = {title: show.anime_title, total: show.anime_num_episodes, score: show.score};
+      if(show.anime_airing_status === 1) {
+        const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
+        return {count: (meta.airing.next_episode - 1) - show.num_watched_episodes, ...base};
+      }
+      if(show.anime_airing_status === 2) {
+        return {count: show.num_watched_episodes - show.anime_num_episodes, ...base};
+      }
+      return {count: 0};
+    })
+    .filter(blob => blob.count > 0)
+    .sort((a, b) => b.score - a.score)
+    .forEach(blob => {
+      log(`${_.padStart(blob.count, 3)}/${_.padEnd(blob.total, 3)} - ${blob.title}`);
+    });
+
+  });
 
 // Parse command line args and run commands!
 program.parse(process.argv);
