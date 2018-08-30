@@ -532,7 +532,7 @@ program
         return {count: (meta.airing.next_episode - 1) - show.num_watched_episodes, ...base};
       }
       if(show.anime_airing_status === 2) {
-        return {count: show.num_watched_episodes - show.anime_num_episodes, ...base};
+        return {count: show.anime_num_episodes - show.num_watched_episodes, ...base};
       }
       return {count: 0};
     })
