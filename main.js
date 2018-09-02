@@ -516,15 +516,23 @@ program
 program
   .command('todo')
   .description('Figure out which episodes have not been watched')
+  .option('-a, --airing', 'Only show airing shows')
+  .option('-c, --count', 'Show number of unwatched episodes')
+  .option('-s, --sort', 'Sort by number of episodes (instead of score)')
   .action(async flags => {
+    flags = Object.keys(flags);
+    const hasFlag = flags.includes.bind(flags);
+
     if(!config)
       return log('config.yml does not exist! run autocr init to create one');
 
-    log('Fetching AniChart and MyAnimeList...');
+    log('Fetching AniChart and MyAnimeList...\n');
     const malPromise = fetchList(config.settings.myanimelist.username);
     const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
     const mal = await malPromise;
+    const sortEpisode = hasFlag('sort');
 
+    let total = 0;
     mal.map(show => {
       const base = {title: show.anime_title, total: show.anime_num_episodes, score: show.score};
       if(show.anime_airing_status === 1) {
@@ -532,15 +540,21 @@ program
         return {count: (meta.airing.next_episode - 1) - show.num_watched_episodes, ...base};
       }
       if(show.anime_airing_status === 2) {
+        if(hasFlag('airing'))
+          return {count: 0};
         return {count: show.anime_num_episodes - show.num_watched_episodes, ...base};
       }
       return {count: 0};
     })
     .filter(blob => blob.count > 0)
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => sortEpisode ? b.count - a.count : b.score - a.score)
     .forEach(blob => {
+      total += blob.count;
       log(`${_.padStart(blob.count, 3)}/${_.padEnd(blob.total, 3)} - ${blob.title}`);
     });
+
+    if(hasFlag('count'))
+      log('\nTotal Episodes:', total);
 
   });
 

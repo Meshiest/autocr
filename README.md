@@ -50,6 +50,9 @@ This application is not endorsed or affliated with CrunchyRoll, MyAnimeList, or 
       -h, --help              output usage information
     init                      Creates the default config.yml if it does not already exist
     todo                      Figure out which episodes have not been watched
+      -a, --airing            Only show airing shows
+      -c, --count             Show number of unwatched episodes
+      -s, --sort              Sort by number of episodes (instead of score)
 
 
 ## Notes
