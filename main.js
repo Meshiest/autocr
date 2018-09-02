@@ -72,17 +72,16 @@ function fetchFeed() {
 }
 
 // Run the crunchy tool with credentials and config
-// If the show prop is given, do not run batch operations
-function runCrunchy(show) {
+// If the args prop is given, do not run batch operations
+function runCrunchy(...args) {
   crunchy(process.argv = [
       '--user', config.settings.crunchyroll.username,
       '--pass', config.settings.crunchyroll.password,
       '--nametmpl', '{SERIES_TITLE} - s{SEASON_NUMBER}e{EPISODE_NUMBER}',
       '--output',  fs.realpathSync(config.settings.output_dir),
       '--ignoredub',
-      ...(show ? [show] : ['--batch', TEMP_BATCH_PATH])
+      ...(args.length ? args : ['--batch', TEMP_BATCH_PATH])
     ], err => {
-
       if(err)
         console.error(err);
 
@@ -468,16 +467,17 @@ program
 program
   .command('search <title>')
   .option('-d, --download', 'Download the entire show from the search result')
+  .option('-e, --episode <eps>', 'Specify which episodes to download (in format crunchy uses)')
   .description('Search CrunchyRoll for the given title and return a crunchyroll link')
-  .action(async (title, flags) => {
-    flags = Object.keys(flags);
+  .action(async (title, options) => {
+    const flags = Object.keys(options);
     const hasFlag = flags.includes.bind(flags);
     try {
       const url = await searchCrunchyroll(title);
       if(hasFlag('download')) {
         if(!config)
           return log('config.yml does not exist! run autocr init to create one');
-        runCrunchy(url);
+        runCrunchy(url, ...(hasFlag('episode') ? ['-e', options.episode] : []));
       } else
         log(url);
     } catch (e) {

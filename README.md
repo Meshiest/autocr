@@ -39,20 +39,22 @@ This application is not endorsed or affliated with CrunchyRoll, MyAnimeList, or 
       -d, --description       Show series descriptions
       -e, --english           Show series english titles
       -g, --genre             Show series genre
-      -h, --help              output usage information
       -l, --list              Only display shows in the config file shows list
       -L, --animelist         Only display shows in the config MyAnimeList
       -m, --minimal           Show only times and romaji titles
       -r, --rating            Show series ratings
       -t, --time              Show time until next episode
+      -h, --help              output usage information
     search [options] <title>  Search CrunchyRoll for the given title and return a crunchyroll link
       -d, --download          Download the entire show from the search result
+      -e, --episode <eps>     Specify which episodes to download (in format crunchy uses)
       -h, --help              output usage information
     init                      Creates the default config.yml if it does not already exist
-    todo                      Figure out which episodes have not been watched
+    todo [options]            Figure out which episodes have not been watched
       -a, --airing            Only show airing shows
       -c, --count             Show number of unwatched episodes
       -s, --sort              Sort by number of episodes (instead of score)
+      -h, --help              output usage information
 
 
 ## Notes
