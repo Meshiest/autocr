@@ -91,6 +91,33 @@ function runCrunchy(...args) {
     });
 }
 
+let becauseCache; // Cache because.moe info
+/* Get the show info json from because.moe */
+function fetchBecause() {
+  return new Promise((resolve, reject) => {
+    if(becauseCache)
+      return resolve(becauseCache);
+
+    request('https://bcmoe.blob.core.windows.net/assets/us.json', (err, resp, body) => {
+      if(err)
+        return reject(err);
+      try {
+        becauseCache = JSON.parse(body).shows;
+        resolve(becauseCache);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  })
+}
+
+/* Search because.moe for a title */
+async function searchBecause(title) {
+  const search = new RegExp((title || '').split('').join('.*'), 'i');
+  return (await fetchBecause())
+    .filter(show => show.name.match(search))
+    .map(show => show.sites.crunchyroll)[0];
+}
 
 // Search crunchyroll and resolve if we found a video
 function searchCrunchyroll(title) {
@@ -117,8 +144,12 @@ function guessFromMAL(mal_item) {
   return new Promise((resolve, reject) => {
     const {anime_url, anime_title} = mal_item;
 
+    const becauseRes = searchBecause(anime_title);
+    if(becauseRes)
+      return resolve(becauseRes);
+
     // Open the MAL show page and find the "English" or "Synonyms" section on the side bar
-    request(`https://myanimelist.net${anime_url}`, async (err, resp, body) => {
+    request(`https://myanimelist.net${encodeURI(anime_url)}`, async (err, resp, body) => {
       if(err) {
         return searchCrunchyroll(anime_title).then(resolve, reject);
       }
@@ -200,8 +231,10 @@ program
       return log('config.yml does not exist! run autocr init to create one');
 
     log('Fetching MAL...');
+    const becausePromise = fetchBecause();
     // Get currently watching shows from MyAnimeList
     const list = await fetchList(config.settings.myanimelist.username);
+    await becausePromise;
 
     // Find the crunchyroll link for each of the shows
     const shows = await Promise.all(list.map(async show => ({
@@ -214,7 +247,9 @@ program
     const beforeLen = (config.shows || []).length;
 
     // Only add shows that are not already in the list
-    const newShows = (config.shows || []).concat(shows.filter(s => !_.find(config.shows, {id: s.id})));
+    const newShows = (config.shows || [])
+      .concat(shows.filter(s => !_.find(config.shows, {id: s.id})))
+      .filter(show => show.crunchyroll);
 
     // Update the config with the found shows
     writeConfig(Object.assign(config, {
@@ -466,14 +501,21 @@ program
 
 program
   .command('search <title>')
+  .option('-c, --crunchy', 'Search with crunchyroll')
   .option('-d, --download', 'Download the entire show from the search result')
   .option('-e, --episode <eps>', 'Specify which episodes to download (in format crunchy uses)')
-  .description('Search CrunchyRoll for the given title and return a crunchyroll link')
+  .description('Search because.moe for the given title and return a crunchyroll link')
   .action(async (title, options) => {
     const flags = Object.keys(options);
     const hasFlag = flags.includes.bind(flags);
     try {
-      const url = await searchCrunchyroll(title);
+      const url = await (hasFlag('crunchy') ? searchCrunchyroll : searchBecause)(title);
+      
+      if(!url) {
+        console.error('No show found');
+        process.exit(1);
+      }
+
       if(hasFlag('download')) {
         if(!config)
           return log('config.yml does not exist! run autocr init to create one');
@@ -550,7 +592,7 @@ program
     .sort((a, b) => sortEpisode ? b.count - a.count : b.score - a.score)
     .forEach(blob => {
       total += blob.count;
-      log(`${_.padStart(blob.count, 3)}/${_.padEnd(blob.total, 3)} - ${blob.title}`);
+      log(`${_.padStart(blob.count, 3)}/${_.padEnd(blob.total || '?', 3)} - ${blob.title}`);
     });
 
     if(hasFlag('count'))
