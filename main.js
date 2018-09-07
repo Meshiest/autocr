@@ -560,6 +560,7 @@ program
   .description('Figure out which episodes have not been watched')
   .option('-a, --airing', 'Only show airing shows')
   .option('-c, --count', 'Show number of unwatched episodes')
+  .option('-l, --list', 'Only display shows from the config list')
   .option('-s, --sort', 'Sort by number of episodes (instead of score)')
   .action(async flags => {
     flags = Object.keys(flags);
@@ -577,6 +578,10 @@ program
     let total = 0;
     mal.map(show => {
       const base = {title: show.anime_title, total: show.anime_num_episodes, score: show.score};
+      
+      if(hasFlag('list') && !_.find(config.shows || [], {id: show.anime_id}))
+        return {count: 0};
+
       if(show.anime_airing_status === 1) {
         const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
         return {count: (meta.airing.next_episode - 1) - show.num_watched_episodes, ...base};

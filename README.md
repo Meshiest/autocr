@@ -55,6 +55,7 @@ This application is not endorsed or affliated with CrunchyRoll, MyAnimeList, or 
     todo [options]            Figure out which episodes have not been watched
       -a, --airing            Only show airing shows
       -c, --count             Show number of unwatched episodes
+      -l, --list              Only display shows from the config list
       -s, --sort              Sort by number of episodes (instead of score)
       -h, --help              output usage information
 

@@ -4,7 +4,7 @@
     "type": "git",
     "url": "git://github.com/meshiest/autocr.git"
   },
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "An automatic anime downloader given a MyAnimeList and a Crunchyroll account",
   "main": "main.js",
   "scripts": {
