@@ -560,6 +560,7 @@ program
   .description('Figure out which episodes have not been watched')
   .option('-a, --airing', 'Only show airing shows')
   .option('-c, --count', 'Show number of unwatched episodes')
+  .option('-e, --episode', 'Display unwatched episode numbers')
   .option('-l, --list', 'Only display shows from the config list')
   .option('-s, --sort', 'Sort by number of episodes (instead of score)')
   .action(async flags => {
@@ -578,18 +579,28 @@ program
     let total = 0;
     mal.map(show => {
       const base = {title: show.anime_title, total: show.anime_num_episodes, score: show.score};
-      
+
       if(hasFlag('list') && !_.find(config.shows || [], {id: show.anime_id}))
         return {count: 0};
 
       if(show.anime_airing_status === 1) {
         const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
-        return {count: (meta.airing.next_episode - 1) - show.num_watched_episodes, ...base};
+        return {
+          count: (meta.airing.next_episode - 1) - show.num_watched_episodes,
+          begin: show.num_watched_episodes,
+          end: (meta.airing.next_episode - 1),
+          ...base
+        };
       }
       if(show.anime_airing_status === 2) {
         if(hasFlag('airing'))
           return {count: 0};
-        return {count: show.anime_num_episodes - show.num_watched_episodes, ...base};
+        return {
+          count: show.anime_num_episodes - show.num_watched_episodes,
+          begin: show.num_watched_episodes,
+          end: show.anime_num_episodes,
+          ...base
+        };
       }
       return {count: 0};
     })
@@ -597,7 +608,11 @@ program
     .sort((a, b) => sortEpisode ? b.count - a.count : b.score - a.score)
     .forEach(blob => {
       total += blob.count;
-      log(`${_.padStart(blob.count, 3)}/${_.padEnd(blob.total || '?', 3)} - ${blob.title}`);
+      const start = hasFlag('episode') ? (
+        _.padStart(blob.begin === blob.end ? blob.begin : blob.begin + '-' + blob.end, 6)
+      ) : _.padStart(blob.count, 3);
+
+      log(`${start}/${_.padEnd(blob.total || '?', 3)} - ${blob.title}`);
     });
 
     if(hasFlag('count'))
