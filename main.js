@@ -587,7 +587,7 @@ program
         const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
         return {
           count: (meta.airing.next_episode - 1) - show.num_watched_episodes,
-          begin: show.num_watched_episodes,
+          begin: show.num_watched_episodes + 1,
           end: (meta.airing.next_episode - 1),
           ...base
         };
@@ -597,7 +597,7 @@ program
           return {count: 0};
         return {
           count: show.anime_num_episodes - show.num_watched_episodes,
-          begin: show.num_watched_episodes,
+          begin: show.num_watched_episodes + 1,
           end: show.anime_num_episodes,
           ...base
         };
@@ -609,7 +609,7 @@ program
     .forEach(blob => {
       total += blob.count;
       const start = hasFlag('episode') ? (
-        _.padStart(blob.begin === blob.end ? blob.begin : blob.begin + '-' + blob.end, 6)
+        _.padStart(blob.end - blob.begin <= 1 ? blob.begin : blob.begin + '-' + blob.end, 6)
       ) : _.padStart(blob.count, 3);
 
       log(`${start}/${_.padEnd(blob.total || '?', 3)} - ${blob.title}`);
