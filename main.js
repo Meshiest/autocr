@@ -139,6 +139,22 @@ function searchCrunchyroll(title) {
   });
 }
 
+// Search myanimelist and return the first found anime's [url, name]
+function searchMAL(term) {
+  return new Promise((resolve, reject) => {
+    request(`https://myanimelist.net/search/all?q=${term}`, (err, resp, body) => {
+      if(err) {
+        return reject(err);
+      }
+
+      const $ = cheerio.load(body);
+      const anime = $('.content-left h2#anime + article .list .information a.fw-b');
+
+      resolve(Array.from(anime).map(e => [e.attribs.href, e.children[0].data])[0]);
+    });
+  });
+}
+
 // Try to get the Crunchyroll link by searching for videos based on the MAL show name
 function guessFromMAL(mal_item) {
   return new Promise((resolve, reject) => {
@@ -501,9 +517,11 @@ program
 
 program
   .command('search <title>')
+  .option('-a, --add', 'Add the found show to the config')
   .option('-c, --crunchy', 'Search with crunchyroll')
   .option('-d, --download', 'Download the entire show from the search result')
   .option('-e, --episode <eps>', 'Specify which episodes to download (in format crunchy uses)')
+  .option('-m, --myanimelist', 'Also find MyAnimeList entry for the discovered show')
   .description('Search because.moe for the given title and return a crunchyroll link')
   .action(async (title, options) => {
     const flags = Object.keys(options);
@@ -515,6 +533,34 @@ program
         console.error('No show found');
         process.exit(1);
       }
+
+      // Search mal/add to list flag
+      if(hasFlag('myanimelst') || hasFlag('add')) {
+        const [mal, title] = await searchMAL(url);
+
+        if(hasFlag('add')) {
+          if(!config)
+            return log('config.yml does not exist! run autocr init to create one');
+
+          const show = {
+            title,
+            crunchyroll: url,
+            id: parseInt(mal.match(/\d+/)[0]),
+            offset: 0,
+          };
+
+          // Avoid duplicate entries
+          if(!_.find(config.shows, {crunchyroll: url})) {
+            writeConfig(Object.assign(config, {shows: config.shows.concat(show)}));
+            log(mal, 'added');
+          } else {
+            log(mal, 'already added');
+          }
+        } else {
+          log(mal);
+        }
+      }
+
 
       if(hasFlag('download')) {
         if(!config)

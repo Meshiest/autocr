@@ -47,9 +47,11 @@ This application is not endorsed or affliated with CrunchyRoll, MyAnimeList, or 
       -t, --time              Show time until next episode
       -h, --help              output usage information
     search [options] <title>  Search Because.moe for the given title and return a crunchyroll link
+      -a, --add               Add the found show to the config
       -c, --crunchy           Search with crunchyroll
       -d, --download          Download the entire show from the search result
       -e, --episode <eps>     Specify which episodes to download (in format crunchy uses)
+      -m, --myanimelist       Also find MyAnimeList entry for the discovered show
       -h, --help              output usage information
     init                      Creates the default config.yml if it does not already exist
     todo [options]            Figure out which episodes have not been watched
