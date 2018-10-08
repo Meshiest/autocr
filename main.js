@@ -523,11 +523,11 @@ program
   .option('-e, --episode <eps>', 'Specify which episodes to download (in format crunchy uses)')
   .option('-m, --myanimelist', 'Also find MyAnimeList entry for the discovered show')
   .description('Search because.moe for the given title and return a crunchyroll link')
-  .action(async (title, options) => {
+  .action(async (search, options) => {
     const flags = Object.keys(options);
     const hasFlag = flags.includes.bind(flags);
     try {
-      const url = await (hasFlag('crunchy') ? searchCrunchyroll : searchBecause)(title);
+      const url = await (hasFlag('crunchy') ? searchCrunchyroll : searchBecause)(search);
       
       if(!url) {
         console.error('No show found');
@@ -535,8 +535,8 @@ program
       }
 
       // Search mal/add to list flag
-      if(hasFlag('myanimelst') || hasFlag('add')) {
-        const [mal, title] = await searchMAL(url);
+      if(hasFlag('myanimelist') || hasFlag('add')) {
+        const [mal, title] = await searchMAL(search);
 
         if(hasFlag('add')) {
           if(!config)
