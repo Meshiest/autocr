@@ -1,6 +1,5 @@
 const fs = require('fs');
 const _ = require('lodash');
-const sqlite3 = require('sqlite3').verbose();
 const yaml = require('js-yaml');
 const { batch: crunchy } = require('./node_modules/crunchy/dist');
 const format = require('string-format');
