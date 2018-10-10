@@ -22,7 +22,7 @@
     "cheerio": "^1.0.0-rc.2",
     "chokidar": "^2.0.4",
     "commander": "^2.17.1",
-    "crunchy": "^1.4.3",
+    "crunchy": "^1.4.5",
     "dateformat": "^3.0.3",
     "js-yaml": "^3.12.0",
     "lodash": "^4.17.10",
