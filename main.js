@@ -634,6 +634,7 @@ program
           count: (meta.airing.next_episode - 1) - show.num_watched_episodes,
           begin: show.num_watched_episodes + 1,
           end: (meta.airing.next_episode - 1),
+          airing: true,
           ...base
         };
       }
@@ -654,10 +655,10 @@ program
     .forEach(blob => {
       total += blob.count;
       const start = hasFlag('episode') ? (
-        _.padStart(blob.end - blob.begin <= 1 ? blob.begin : blob.begin + '-' + blob.end, 6)
+        _.padStart(blob.end - blob.begin <= 0 ? blob.begin : blob.begin + '-' + blob.end, 7)
       ) : _.padStart(blob.count, 3);
 
-      log(`${start}/${_.padEnd(blob.total || '?', 3)} - ${blob.title}`);
+      log(`${start}/${_.padEnd(blob.total || '?', 3)} - ${blob.airing && !hasFlag('airing') ? '*' : ''}${blob.title}`);
     });
 
     if(hasFlag('count'))
