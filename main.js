@@ -10,6 +10,7 @@ const { parseString: parseXML } = require('xml2js');
 const chokidar = require('chokidar');
 const path = require('path');
 const dateFormat = require('dateformat');
+const os = require('os');
 
 const CR_URL_REGEX = /https?:\/\/www.crunchyroll\.com\/(.+?)\//;
 
@@ -20,9 +21,14 @@ function mkdir(dir) {
   }
 }
 
+const homePath = os.homedir() + '/.autocr.yml';
+const configPath = fs.existsSync(homePath) ? homePath : 'config.yml';
+
 // Write an object to the yml config file
-function writeConfig(obj) {
-  fs.writeFileSync('config.yml', yaml.safeDump(obj));
+function writeConfig(obj, isNew, useHome) {
+  if(isNew)
+    log('Creating config file:', useHome ? homePath : configPath);
+  fs.writeFileSync(useHome ? homePath : configPath, yaml.safeDump(obj));
 }
 
 // A map function that allows map to have asynchronous functions
@@ -39,7 +45,9 @@ Array.prototype.syncMap = async function (fn) {
 };
 
 // Load config file
-let config = fs.existsSync('config.yml') && yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
+let config = fs.existsSync(configPath) && yaml.safeLoad(fs.readFileSync(configPath, 'utf8')) ||
+  fs.existsSync(homePath) && yaml.safeLoad(fs.readFileSync(homePath, 'utf8'));
+
 config && mkdir(config.settings.output_dir);
 const TEMP_BATCH_PATH = (config ? fs.realpathSync(config.settings.output_dir) + '/' : '') + '.crunchybatch.txt';
 
@@ -576,10 +584,14 @@ program
 program
   .command('init')
   .description('Creates the default config.yml if it does not already exist')
-  .action(() => {
+  .option('-h, --home', 'Write config to home directory')
+  .action(options => {
+    const flags = Object.keys(options);
+    const hasFlag = flags.includes.bind(flags);
+
     // Create the default config file
-    if(!fs.existsSync('config.yml')) {
-      log('Remember to update the default values in your newly created config.yml!');
+    if(!config) {
+      log('Remember to update the default values in your newly created config file!');
       writeConfig({
         agree_to_license: false,
         settings: {
@@ -594,9 +606,9 @@ program
           output_dir: 'downloads',
         },
         shows: null,
-      });
+      }, true, hasFlag('home'));
     } else {
-      log('config.yml already exists!');
+      log('Config file already exists!');
     }
   });
 

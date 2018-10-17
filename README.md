@@ -56,6 +56,7 @@ There are a few features that do not necessitate downloading any anime!
       -m, --myanimelist       Also find MyAnimeList entry for the discovered show
       -h, --help              output usage information
     init                      Creates the default config.yml if it does not already exist
+    -h, --home                Write config to home directory
     todo [options]            Figure out which episodes have not been watched
       -a, --airing            Only show airing shows
       -c, --count             Show number of unwatched episodes
