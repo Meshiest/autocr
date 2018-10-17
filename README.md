@@ -1,6 +1,6 @@
 # Auto Crunchy (autocr)
 
-This handy dandy anime tool automates a number of things to provide the laziest experience possible!
+This handy dandy anime tool automates a number of things to provide the laziest anime experience possible!
 
 1. Interfaces with [Crunchy](https://github.com/Godzil/Crunchy) to download shows!
 2. Interfaces with [MyAnimeList](https://myanimelist.net/) to know what you're watching!
@@ -55,8 +55,9 @@ There are a few features that do not necessitate downloading any anime!
       -e, --episode <eps>     Specify which episodes to download (in format crunchy uses)
       -m, --myanimelist       Also find MyAnimeList entry for the discovered show
       -h, --help              output usage information
-    init                      Creates the default config.yml if it does not already exist
-    -h, --home                Write config to home directory
+    init [options]            Creates the default config.yml if it does not already exist
+      -H, --home              Write config to home directory
+      -h, --help              output usage information
     todo [options]            Figure out which episodes have not been watched
       -a, --airing            Only show airing shows
       -c, --count             Show number of unwatched episodes

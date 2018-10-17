@@ -229,14 +229,6 @@ if(config && !config.agree_to_license) {
   process.exit(1);
 }
 
-const program = require('commander')
-  .description('autocr automates downloading anime from CrunchyRoll')
-  .version(require('./package').version)
-  .action(async show => {
-    console.error('Invalid command. See --help for a list of available commands.');
-    process.exit(1);
-  });
-
 // Enable/disable console.log/process.stdout.write
 const log = console.log.bind(console);
 const writeBackup = process.stdout.write.bind(process.stdout);
@@ -245,6 +237,87 @@ function setQuiet(enabled) {
   console.log = enabled ? none : log;
   process.stdout.write = enabled ? none : writeBackup;
 }
+
+// Check what shows we need to download, crunchy handles not downloading the same thing twice by accident
+async function watchFeed() {
+  const listPromise = fetchList(config.settings.myanimelist.username);
+  const items = (await fetchFeed()).rss.channel[0].item;
+  const list = await listPromise;
+
+  // Select only items that are in our config "shows" list
+  const toDownload = items.filter(i => i['crunchyroll:episodeNumber']).map(i => ({
+    date: i.pubDate[0],
+    episode: +i['crunchyroll:episodeNumber'][0],
+    link: i.link,
+    ... (_.find(config.shows || [], {crunchyroll: i.link[0].match(CR_URL_REGEX)[0]}) || {})
+  }))
+  .filter(i => i.title)
+  .filter(i => {
+    const malEntry = _.find(list, {anime_id: i.id}, {});
+    return malEntry && malEntry.num_watched_episodes < i.episode - i.offset;
+  });
+
+  // Create the data dir if it doesn't already exist
+  mkdir(config.settings.output_dir);
+  
+  // Build and write a batch file for crunchy
+  const shows = toDownload.map(({link}) => '@' + link).join('\n');
+  fs.writeFileSync(TEMP_BATCH_PATH, shows);
+
+  runCrunchy();
+}
+
+
+let anichartHeaders;
+// Cache headers needed for anichart api requests
+function getACHeaders() {
+  return new Promise((resolve, reject) => {
+    if(anichartHeaders) 
+      resolve(anichartHeaders);
+    else {      
+      request('http://anichart.net', (err, req, body) => {
+        if(err)
+          reject(err);
+        else
+          resolve(anichartHeaders = {
+            'X-CSRF-TOKEN': req.headers['set-cookie'][0].match(/XSRF-TOKEN=(.+?);/)[1],
+            Cookie: req.headers['set-cookie'].map(str => str.match(/^(.+?);/)[1]).join(';')
+          });
+      });
+    }
+  });
+}
+
+// Grab a free api token and run an api command
+function anichart(url) {
+  return new Promise(async (resolve, reject) => {
+    request({
+      url,
+      headers: await getACHeaders(),
+    }, (err, req, body) => {
+      if(err)
+        reject(err);
+      else
+        resolve(JSON.parse(body))
+    });
+  });
+}
+
+// Format seconds into a countdown clock string (3d 02h 01m)
+function countdown(secs) {
+  const pad = t => t < 10 ? '0' + t : t;
+  return `${Math.floor(secs / 60 / 60 / 24)}d ${pad(Math.floor(secs / 60 / 60) % 24)}h ${pad(Math.floor(secs / 60) % 60)}m`;
+}
+
+/* -- Command line functions -- */
+
+const program = require('commander')
+  .description('autocr automates downloading anime from CrunchyRoll')
+  .version(require('./package').version)
+  .action(() => {
+    console.error('Invalid command. See --help for a list of available commands.');
+    process.exit(1);
+  });
 
 program
   .command('pull')
@@ -338,35 +411,6 @@ program
     runCrunchy();
   });
 
-// Check what shows we need to download, crunchy handles not downloading the same thing twice by accident
-async function watchFeed() {
-  const listPromise = fetchList(config.settings.myanimelist.username);
-  const items = (await fetchFeed()).rss.channel[0].item;
-  const list = await listPromise;
-
-  // Select only items that are in our config "shows" list
-  const toDownload = items.filter(i => i['crunchyroll:episodeNumber']).map(i => ({
-    date: i.pubDate[0],
-    episode: +i['crunchyroll:episodeNumber'][0],
-    link: i.link,
-    ... (_.find(config.shows || [], {crunchyroll: i.link[0].match(CR_URL_REGEX)[0]}) || {})
-  }))
-  .filter(i => i.title)
-  .filter(i => {
-    const malEntry = _.find(list, {anime_id: i.id}, {});
-    return malEntry && malEntry.num_watched_episodes < i.episode - i.offset;
-  });
-
-  // Create the data dir if it doesn't already exist
-  mkdir(config.settings.output_dir);
-  
-  // Build and write a batch file for crunchy
-  const shows = toDownload.map(({link}) => '@' + link).join('\n');
-  fs.writeFileSync(TEMP_BATCH_PATH, shows);
-
-  runCrunchy();
-}
-
 program
   .command('watch')
   .description('Download latest episodes as they come out on CrunchyRoll')
@@ -395,48 +439,6 @@ program
     watchFeed();
     setInterval(watchFeed, Math.max(config.settings.feed_interval_mins, 15) * 60000);
   });
-
-let anichartHeaders;
-// Cache headers needed for anichart api requests
-function getACHeaders() {
-  return new Promise((resolve, reject) => {
-    if(anichartHeaders) 
-      resolve(anichartHeaders);
-    else {      
-      request('http://anichart.net', (err, req, body) => {
-        if(err)
-          reject(err);
-        else
-          resolve(anichartHeaders = {
-            'X-CSRF-TOKEN': req.headers['set-cookie'][0].match(/XSRF-TOKEN=(.+?);/)[1],
-            Cookie: req.headers['set-cookie'].map(str => str.match(/^(.+?);/)[1]).join(';')
-          });
-      });
-    }
-  });
-}
-
-// Grab a free api token and run an api command
-function anichart(url) {
-  return new Promise(async (resolve, reject) => {
-    request({
-      url,
-      headers: await getACHeaders(),
-    }, (err, req, body) => {
-      if(err)
-        reject(err);
-      else
-        resolve(JSON.parse(body))
-    });
-  });
-}
-
-// Format seconds into a countdown clock string (3d 02h 01m)
-function countdown(secs) {
-  function pad(t) { return t < 10 ? '0' + t : t}
-
-  return `${Math.floor(secs / 60 / 60 / 24)}d ${pad(Math.floor(secs / 60 / 60) % 24)}h ${pad(Math.floor(secs / 60) % 60)}m`;
-}
 
 program
   .command('airing')
@@ -501,22 +503,20 @@ program
 
         const crLink = (_.find(show.external_links, {site: 'Crunchyroll'}) || {}).url;
 
-        log(
-`  ${time}${showTime ? ` [${countdown(show.airing.countdown)}]` : ''} - ${show.title_romaji}${showTime ? ` - ${show.airing.next_episode}/${show.total_episodes || '?'}`: ''} ${
-  hasFlag('english') ? `
+        log(`  ${time}${showTime ? ` [${countdown(show.airing.countdown)}]` : ''} - ${show.title_romaji}${showTime ? ` - ${show.airing.next_episode}/${show.total_episodes || '?'}`: ''} ${
+        hasFlag('english') ? `
     Title: ${show.title_english}` : ''}
       MAL: ${show.mal_link}
        CR: ${crLink || 'n/a'}${
-  hasFlag('description') ? `
+        hasFlag('description') ? `
      Desc: ${show.description.replace(/<br>|(\n+\(Source: .+\))/g, '')}`
    : ''}${
-  hasFlag('rating') ? `
+        hasFlag('rating') ? `
     Score: ${Math.floor(show.average_score/10)}/10`
    : ''}${
-  hasFlag('genre') ? `
+        hasFlag('genre') ? `
     Genre: ${show.genres.filter(g => g).join(', ')}`
-   : ''}
-`);
+   : ''}\n`);
       });
       log('\n');
     });
@@ -584,7 +584,7 @@ program
 program
   .command('init')
   .description('Creates the default config.yml if it does not already exist')
-  .option('-h, --home', 'Write config to home directory')
+  .option('-H, --home', 'Write config to home directory')
   .action(options => {
     const flags = Object.keys(options);
     const hasFlag = flags.includes.bind(flags);
