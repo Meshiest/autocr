@@ -65,7 +65,8 @@ There are a few features that do not necessitate downloading any anime!
       -l, --list               Only display shows from the config list
       -s, --sort               Sort by number of episodes (instead of score)
       -h, --help               output usage information
-    dash|d                     WIP - Runs a webserver with todo and airing pages in fancy format
+    dash|d [options]           Runs a webserver with todo and airing pages in fancy format
+      -w, --window             Pop up an electron window
 
 
 

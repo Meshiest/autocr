@@ -3,6 +3,9 @@ const app = express();
 const http = require('http').Server(app);
 const _ = require('lodash');
 
+const proc = require('child_process');
+const electron = require('electron');
+
 const { config } = require('./config.js');
 const { fetch } = require('./animeutils.js');
 
@@ -38,12 +41,24 @@ app.get('/api/todo', async (req, res) => {
   res.json(await fetch.todo());
 });
 
-function start(port) {
-  port = port || config && config.settings.server_port || 3000;
+function startServer() {
+  const port = config && config.settings.server_port || 3000;
   console.log('Starting server on port', port);
   http.listen(port);
 }
 
+function startApp() {
+  const sp = proc.spawn(electron, [__dirname + '/window.js']);
+  sp.on('error', (err) => {
+    console.log('failed to start process', err);
+  });
+  sp.on('exit',(code, signal) => {
+    process.exit(code);
+  });
+}
+
+
 module.exports = {
-  start,
+  startServer,
+  startApp,
 };

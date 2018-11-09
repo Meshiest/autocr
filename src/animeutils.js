@@ -207,7 +207,7 @@ async function todo() {
       title: show.anime_title,
       total: show.anime_num_episodes,
       score: show.score,
-      id: show.anime_id,
+      mal_id: show.anime_id,
       mal: `http://myanimelist.net/anime/${show.anime_id}`,
     };
 
@@ -217,6 +217,7 @@ async function todo() {
         count: (meta.airing.next_episode - 1) - show.num_watched_episodes,
         begin: show.num_watched_episodes + 1,
         end: (meta.airing.next_episode - 1),
+        ani_id: meta.id,
         airing: true,
         ...base
       };

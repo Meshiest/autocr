@@ -9,7 +9,7 @@ const { config, writeConfig, BLANK_CONFIG } = require('./src/config.js');
 const { mkdir, log, setQuiet, countdown } = require('./src/utils.js');
 const { fetch, search, guessFromMAL, CR_URL_REGEX } = require('./src/animeutils.js');
 const { runCrunchy, watchFeed } = require('./src/crunchy.js');
-const { start } = require('./src/server.js');
+const { startServer, startApp } = require('./src/server.js');
 
 if(config && !config.agree_to_license) {
   console.error('Before using this software you must read and agree to the LICENSE and set the agree_to_license property to true in the config.yml file');
@@ -51,7 +51,7 @@ program
 
     // Only add shows that are not already in the list
     const newShows = (config.shows || [])
-      .concat(shows.filter(s => !_.find(config.shows, {id: s.id})))
+      .concat(shows.filter(s => !_.find(config.shows, {id: s.mal_id})))
       .filter(show => show.crunchyroll);
 
     // Update the config with the found shows
@@ -353,7 +353,7 @@ program
   .command('dash')
   .alias('d')
   .description('WIP - Runs a webserver with todo and airing pages in fancy format')
-  // .option('-w, --window', 'Pop up an electron window')
+  .option('-w, --window', 'Pop up an electron window')
   .action(options => {
     const flags = Object.keys(options);
     const hasFlag = flags.includes.bind(flags);
@@ -361,7 +361,12 @@ program
     if(!config)
       return log('config.yml does not exist! run autocr init to create one');
 
-    start();
+    if(hasFlag('window')) {
+      startServer();
+      startApp();
+    } else {
+      startServer();
+    }
   });
 
 // Parse command line args and run commands!

@@ -13,6 +13,7 @@
       <cal-day v-for="show, day in calendar"
         v-bind:day="day"
         v-bind:shows="show"
+        v-bind:todo="todo"
         v-bind:key="day">
       </cal-day>
     </div>
