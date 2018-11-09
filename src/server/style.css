@@ -49,9 +49,11 @@ body {
 }
 
 .calendar {
+  box-sizing: border-box;
   display: flex;
   margin: 0 auto;
   max-width: 800px;
+  padding: 0 20px;
   width: 100%;
 }
 
@@ -67,14 +69,14 @@ body {
 
 .calendar-show {
   border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-  padding-top: 100%;
   margin: 4px 2px;
+  padding-top: 100%;
+  position: relative;
 }
 
 .calendar-show .time {
   background-color: rgba(0, 0, 0, .5);
+  border-bottom-right-radius: 4px;
   border-top-left-radius: 4px;
   bottom: 0;
   color: #fff;
@@ -83,16 +85,78 @@ body {
   right: 0;
 }
 
-.calendar-show img {
+.calendar-show .links {
+  display: flex;
   position: absolute;
+  right: 0;
   top: 0;
-  left: 0;
+}
+
+.links a {
+  border-radius: 4px;
+  border: thin solid white;
+  display: inline-block;
+  height: 15px;
+  margin: 2px 2px;
+  position: relative;
+  width: 15px;
+}
+
+.links a::after {
+  background-color: rgba(0, 0, 0, .5);
+  border-radius: 4px;
+  bottom: 0;
+  color: #fff;
+  font-size: 10px;
+  left: 50%;
+  opacity: 0;
+  padding: 2px 4px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, 100%);
+  z-index: 100;
+}
+
+.links a:hover::after {
+  opacity: 1;
+}
+
+.links .mal {
+  background-color: #2e51a2;
+}
+
+.links .mal::after {
+  content: 'MyAnimeList';
+}
+
+.links .crunchy {
+  background-color: #df6300;
+}
+
+.links .crunchy::after {
+  content: 'Crunchyroll';
+}
+
+.links .amazon {
+  background-color: #fff;
+  border-color: #f90;
+}
+
+.links .amazon::after {
+  content: 'Amazon';
+}
+
+.calendar-show img {
+  border-radius: 4px;
   display: block;
+  height: 100%;
+  left: 0;
   object-fit: cover;
   object-position: 50% 0%;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
   transition: object-position .5s ease;
+  width: 100%;
 }
 
 .calendar-show:hover img {

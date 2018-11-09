@@ -35,6 +35,17 @@ Vue.component('cal-day', {
           <div class="time">
             <clock v-bind:time="show.airing.time"></clock>
           </div>
+          <div class="links">
+            <a class="mal" v-bind:href="show.mal_link"></a>
+            <a v-for="link in show.external_links"
+              v-if="link.site == 'Crunchyroll'"
+              class="crunchy"
+              v-bind:href="link.url"></a>
+            <a v-for="link in show.external_links"
+              v-if="link.site == 'Amazon'"
+              class="amazon"
+              v-bind:href="link.url"></a>
+          </div>
         </article>
       </section>
     </div>
@@ -62,7 +73,7 @@ fetch('/api/airing').then(resp =>
       blob[day] = blob[day].sort((a, b) =>
         a.airing.time - b.airing.time);
     }
-    
+
     app.calendar = blob;
     app.loading = false;
     console.log(blob);
