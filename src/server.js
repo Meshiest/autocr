@@ -3,13 +3,13 @@ const app = express();
 const http = require('http').Server(app);
 const _ = require('lodash');
 
-const { config } = require('config');
-const { fetch } = require('./src/animeutils.js');
+const { config } = require('./config.js');
+const { fetch } = require('./animeutils.js');
 
 app.use(express.static('server'));
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + 'server/index.html');
+  res.sendFile(__dirname + '/server/index.html');
 });
 
 app.get('/airing', async (req, res) => {
@@ -17,20 +17,17 @@ app.get('/airing', async (req, res) => {
   const airing = await fetch.anichart('http://anichart.net/api/airing');
   const mal = malPromise ? await malPromise : [];
 
-  _.each(mal, shows => {
+  _.each(airing, shows => {
     shows.map(show => {
       const malId = show.mal_link.match(/\d+$/);
       const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
 
-      if(malId && _.find(mal, {anime_id: parseInt(malId[0])}))
-        show.onMyMal = true;
-
-      if(config && config.shows && crLink && _.find(config.shows, s => s.crunchyroll.match(crLink.url)))
-        show.onMyConfig = true;
+      show.onMyMal = malId && _.find(mal, {anime_id: parseInt(malId[0])});
+      show.onMyConfig = config && config.shows && crLink && _.find(config.shows, s => s.crunchyroll.match(crLink.url));
     });
   });
 
-  res.json(shows);
+  res.json(airing);
 });
 
 app.get('/todo', async (req, res) => {
@@ -41,9 +38,11 @@ app.get('/todo', async (req, res) => {
 });
 
 function start(port) {
-  http.listen(port || config && config.settings.server_port || 3000);
+  port = port || config && config.settings.server_port || 3000;
+  console.log('Starting server on port', port);
+  http.listen(port);
 }
 
-module.exports {
+module.exports = {
   start,
 };

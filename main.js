@@ -9,6 +9,7 @@ const { config, writeConfig, BLANK_CONFIG } = require('./src/config.js');
 const { mkdir, log, setQuiet, countdown } = require('./src/utils.js');
 const { fetch, search, guessFromMAL, CR_URL_REGEX } = require('./src/animeutils.js');
 const { runCrunchy, watchFeed } = require('./src/crunchy.js');
+const { start } = require('./src/server.js');
 
 if(config && !config.agree_to_license) {
   console.error('Before using this software you must read and agree to the LICENSE and set the agree_to_license property to true in the config.yml file');
@@ -323,6 +324,7 @@ program
 
     let total = 0;
     (await fetch.todo())
+      .filter(blob => blob.count > 0)
       .filter(blob => hasFlag('list') ? _.find(config.shows || [], {id: blob.id}) : true)
       .filter(blob => hasFlag('airing') ? blob.airing : true)
       .sort((a, b) => sortEpisode ? b.count - a.count : b.score - a.score)
@@ -337,6 +339,20 @@ program
 
     if(hasFlag('count'))
       log('\nTotal Episodes:', total);
+  });
+
+program
+  .command('dash')
+  .description('WIP - Runs a webserver with todo and airing pages in fancy format')
+  // .option('-w, --window', 'Pop up an electron window')
+  .action(options => {
+    const flags = Object.keys(options);
+    const hasFlag = flags.includes.bind(flags);
+
+    if(!config)
+      return log('config.yml does not exist! run autocr init to create one');
+
+    start();
   });
 
 // Parse command line args and run commands!

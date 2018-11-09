@@ -231,8 +231,7 @@ async function todo() {
       };
     }
     return {count: 0};
-  })
-  .filter(blob => blob.count > 0);
+  });
 }
 
 // Every function in this module returns a promise
