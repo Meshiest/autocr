@@ -27,6 +27,7 @@ const program = require('commander')
 
 program
   .command('pull')
+  .alias('p')
   .description('Pull currently watching shows from MyAnimeList and populate config file')
   .action(async () => {
     if(!config)
@@ -63,6 +64,7 @@ program
 
 program
   .command('cull')
+  .alias('c')
   .description('Cull shows that are not currently watched from the config file')
   .action(async () => {
     if(!config)
@@ -87,6 +89,7 @@ program
 
 program
   .command('get')
+  .alias('g')
   .description('Download latest episodes all at once')
   .action(async () => {
     if(!config)
@@ -119,6 +122,7 @@ program
 
 program
   .command('watch')
+  .alias('w')
   .description('Download latest episodes as they come out on CrunchyRoll')
   .action(() => {
     if(!config)
@@ -148,6 +152,7 @@ program
 
 program
   .command('airing')
+  .alias('a')
   .description('View currently airing shows from AniChart')
   .option('-a, --all', 'Show all series information')
   .option('-d, --description', 'Show series descriptions')
@@ -230,6 +235,7 @@ program
 
 program
   .command('search <title>')
+  .alias('s')
   .option('-a, --add', 'Add the found show to the config')
   .option('-c, --crunchy', 'Search with crunchyroll')
   .option('-d, --download', 'Download the entire show from the search result')
@@ -289,6 +295,7 @@ program
 
 program
   .command('init')
+  .alias('i')
   .description('Creates the default config.yml if it does not already exist')
   .option('-H, --home', 'Write config to home directory')
   .action(options => {
@@ -306,6 +313,7 @@ program
 
 program
   .command('todo')
+  .alias('t')
   .description('Figure out which episodes have not been watched')
   .option('-a, --airing', 'Only show airing shows')
   .option('-c, --count', 'Show number of unwatched episodes')
@@ -343,6 +351,7 @@ program
 
 program
   .command('dash')
+  .alias('d')
   .description('WIP - Runs a webserver with todo and airing pages in fancy format')
   // .option('-w, --window', 'Pop up an electron window')
   .action(options => {

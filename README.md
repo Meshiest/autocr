@@ -33,39 +33,39 @@ There are a few features that do not necessitate downloading any anime!
 
 ## Commands
 
-    pull                      Pull currently watching shows from MyAnimeList and populate config file
-    cull                      Cull shows that are not currently watched from the config file
-    get                       Download latest episodes all at once
-    watch                     Download latest episodes as they come out on CrunchyRoll
-    airing [options]          View currently airing shows from AniChart
-      -a, --all               Show all series information
-      -d, --description       Show series descriptions
-      -e, --english           Show series english titles
-      -g, --genre             Show series genre
-      -l, --list              Only display shows in the config file shows list
-      -L, --animelist         Only display shows in the config MyAnimeList
-      -m, --minimal           Show only times and romaji titles
-      -r, --rating            Show series ratings
-      -t, --time              Show time until next episode
-      -h, --help              output usage information
-    search [options] <title>  Search Because.moe for the given title and return a crunchyroll link
-      -a, --add               Add the found show to the config
-      -c, --crunchy           Search with crunchyroll
-      -d, --download          Download the entire show from the search result
-      -e, --episode <eps>     Specify which episodes to download (in format crunchy uses)
-      -m, --myanimelist       Also find MyAnimeList entry for the discovered show
-      -h, --help              output usage information
-    init [options]            Creates the default config.yml if it does not already exist
-      -H, --home              Write config to home directory
-      -h, --help              output usage information
-    todo [options]            Figure out which episodes have not been watched
-      -a, --airing            Only show airing shows
-      -c, --count             Show number of unwatched episodes
-      -e, --episode           Display unwatched episode numbers
-      -l, --list              Only display shows from the config list
-      -s, --sort              Sort by number of episodes (instead of score)
-      -h, --help              output usage information
-    dash                      WIP - Runs a webserver with todo and airing pages in fancy format
+    pull|p                     Pull currently watching shows from MyAnimeList and populate config file
+    cull|c                     Cull shows that are not currently watched from the config file
+    get|g                      Download latest episodes all at once
+    watch|w                    Download latest episodes as they come out on CrunchyRoll
+    airing|a [options]         View currently airing shows from AniChart
+      -a, --all                Show all series information
+      -d, --description        Show series descriptions
+      -e, --english            Show series english titles
+      -g, --genre              Show series genre
+      -l, --list               Only display shows in the config file shows list
+      -L, --animelist          Only display shows in the config MyAnimeList
+      -m, --minimal            Show only times and romaji titles
+      -r, --rating             Show series ratings
+      -t, --time               Show time until next episode
+      -h, --help               output usage information
+    search|s [options] <title> Search Because.moe for the given title and return a crunchyroll link
+      -a, --add                Add the found show to the config
+      -c, --crunchy            Search with crunchyroll
+      -d, --download           Download the entire show from the search result
+      -e, --episode <eps>      Specify which episodes to download (in format crunchy uses)
+      -m, --myanimelist        Also find MyAnimeList entry for the discovered show
+      -h, --help               output usage information
+    init|i [options]           Creates the default config.yml if it does not already exist
+      -H, --home               Write config to home directory
+      -h, --help               output usage information
+    todo|t [options]           Figure out which episodes have not been watched
+      -a, --airing             Only show airing shows
+      -c, --count              Show number of unwatched episodes
+      -e, --episode            Display unwatched episode numbers
+      -l, --list               Only display shows from the config list
+      -s, --sort               Sort by number of episodes (instead of score)
+      -h, --help               output usage information
+    dash|d                     WIP - Runs a webserver with todo and airing pages in fancy format
 
 
 
