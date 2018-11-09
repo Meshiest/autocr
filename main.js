@@ -1,316 +1,21 @@
 const fs = require('fs');
 const _ = require('lodash');
-const yaml = require('js-yaml');
-const { batch: crunchy } = require('./node_modules/crunchy/dist');
-const format = require('string-format');
-const request = require('request');
 const commander = require('commander');
-const cheerio = require('cheerio');
-const { parseString: parseXML } = require('xml2js');
 const chokidar = require('chokidar');
 const path = require('path');
 const dateFormat = require('dateformat');
-const os = require('os');
 
-const CR_URL_REGEX = /https?:\/\/www.crunchyroll\.com\/(.+?)\//;
-
-// Create a directory if it does not already exist
-function mkdir(dir) {
-  if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir);
-  }
-}
-
-const homePath = os.homedir() + '/.autocr.yml';
-const configPath = fs.existsSync(homePath) ? homePath : 'config.yml';
-
-// Write an object to the yml config file
-function writeConfig(obj, isNew, useHome) {
-  if(isNew)
-    log('Creating config file:', useHome ? homePath : configPath);
-  fs.writeFileSync(useHome ? homePath : configPath, yaml.safeDump(obj));
-}
-
-// A map function that allows map to have asynchronous functions
-Array.prototype.syncMap = async function (fn) {
-  let arr = [];
-  for(let i = 0; i < this.length; i++) {
-    try {
-      arr.push(await fn(this[i]));
-    } catch (e) {
-      arr.push(undefined);
-    }
-  }
-  return arr;
-};
-
-// Load config file
-let config = fs.existsSync(configPath) && yaml.safeLoad(fs.readFileSync(configPath, 'utf8')) ||
-  fs.existsSync(homePath) && yaml.safeLoad(fs.readFileSync(homePath, 'utf8'));
-
-config && mkdir(config.settings.output_dir);
-const TEMP_BATCH_PATH = (config ? fs.realpathSync(config.settings.output_dir) + '/' : '') + '.crunchybatch.txt';
-
-// Grabs a user's list in JSON form
-function fetchList(name) {
-  return new Promise((resolve, reject) => {
-    request(`https://myanimelist.net/animelist/${name}?status=1`, (err, resp, body) => {
-      if(err)
-        return reject(err);
-      const $ = cheerio.load(body);
-      resolve(JSON.parse($('.list-block table').attr('data-items')));
-    });
-  });
-}
-
-// Get the XML as an object from the Crunchyroll new anime feed
-function fetchFeed() {
-  return new Promise((resolve, reject) => {
-    request('http://www.crunchyroll.com/rss/anime', (err, resp, body) => {
-      if(err)
-        return reject(err);
-      parseXML(body, (err, res) => {
-        if(err)
-          return reject(err);
-        resolve(res);
-      });
-    });
-  });
-}
-
-// Run the crunchy tool with credentials and config
-// If the args prop is given, do not run batch operations
-function runCrunchy(...args) {
-  crunchy(process.argv = [
-      '--user', config.settings.crunchyroll.username,
-      '--pass', config.settings.crunchyroll.password,
-      '--nametmpl', '{SERIES_TITLE} - s{SEASON_NUMBER}e{EPISODE_NUMBER}',
-      '--output',  fs.realpathSync(config.settings.output_dir),
-      '--ignoredub',
-      ...(args.length ? args : ['--batch', TEMP_BATCH_PATH])
-    ], err => {
-      if(err)
-        console.error(err);
-
-      fs.existsSync(TEMP_BATCH_PATH) && fs.unlink(TEMP_BATCH_PATH, err => {
-        err && console.error('Error removing temp file:', err);
-      });
-    });
-}
-
-let becauseCache; // Cache because.moe info
-/* Get the show info json from because.moe */
-function fetchBecause() {
-  return new Promise((resolve, reject) => {
-    if(becauseCache)
-      return resolve(becauseCache);
-
-    request('https://bcmoe.blob.core.windows.net/assets/us.json', (err, resp, body) => {
-      if(err)
-        return reject(err);
-      try {
-        becauseCache = JSON.parse(body).shows;
-        resolve(becauseCache);
-      } catch (err) {
-        reject(err);
-      }
-    });
-  })
-}
-
-/* Search because.moe for a title */
-async function searchBecause(title) {
-  const search = new RegExp((title || '').split('').join('.*'), 'i');
-  return (await fetchBecause())
-    .filter(show => show.name.match(search))
-    .map(show => show.sites.crunchyroll)[0];
-}
-
-// Search crunchyroll and resolve if we found a video
-function searchCrunchyroll(title) {
-  return new Promise((resolve, reject) => {
-    request(`http://www.crunchyroll.com/search?from=search&q=${title.replace(/ /g, '+')}`, (err, resp, body) => {
-      if(err)
-        return reject(err);
-
-      const $ = cheerio.load(body);
-      const elem = $('#aux_results li a');
-      const url = elem[0] && elem[0].attribs.href;
-      const linkMatch = url && url.match(CR_URL_REGEX);
-      if(url && linkMatch) {
-        resolve(linkMatch[0]);
-      } else {
-        reject('No videos...');
-      }
-    });
-  });
-}
-
-// Search myanimelist and return the first found anime's [url, name]
-function searchMAL(term) {
-  return new Promise((resolve, reject) => {
-    request(`https://myanimelist.net/search/all?q=${term}`, (err, resp, body) => {
-      if(err) {
-        return reject(err);
-      }
-
-      const $ = cheerio.load(body);
-      const anime = $('.content-left h2#anime + article .list .information a.fw-b');
-
-      resolve(Array.from(anime).map(e => [e.attribs.href, e.children[0].data])[0]);
-    });
-  });
-}
-
-// Try to get the Crunchyroll link by searching for videos based on the MAL show name
-function guessFromMAL(mal_item) {
-  return new Promise((resolve, reject) => {
-    const {anime_url, anime_title} = mal_item;
-
-    const becauseRes = searchBecause(anime_title);
-    if(becauseRes)
-      return resolve(becauseRes);
-
-    // Open the MAL show page and find the "English" or "Synonyms" section on the side bar
-    request(`https://myanimelist.net${encodeURI(anime_url)}`, async (err, resp, body) => {
-      if(err) {
-        return searchCrunchyroll(anime_title).then(resolve, reject);
-      }
-
-      try {
-        // Show was found based on the title, easy for shows with English titles!
-        return resolve(await searchCrunchyroll(anime_title));
-      } catch (e) {
-        // nothing to do..
-      }
-
-      const $ = cheerio.load(body);
-
-      // Find the title translations in the side bar
-      const elem = $('h2 + div.spaceit_pad > span.dark_text');
-      if(elem[0]) {
-        switch(elem[0].children[0].data) {
-
-        //  We have a few possible show names, let's go down the list in order
-        case 'Synonyms:':
-          const titles = elem[0].next.data.split(',').map(t => t.trim());
-          for(let i = 0; i < titles.length; i++) {
-            try {
-              return resolve(await tryTitle(titles[i]));
-            } catch (e) {
-              continue;
-            }
-          }
-          // Could not find based on synonyms
-          resolve(null);
-          break;
-
-        // We only have one show name and it's probably the right one
-        case 'English:':
-          try {
-            return resolve(await tryTitle(elem[0].next.data.trim()));
-          } catch (e) {
-            // Could not find based on english title
-            return resolve(null);
-          }
-          break;
-        }
-      }
-
-      // This means there were no synonyms, english title, the title is in japanese
-      // OR crunchyroll does not have the show
-      resolve(null);
-    });
-  });
-}
+const { config, writeConfig } = require('./src/config.js');
+const { mkdir, log, setQuiet, countdown } = require('./src/utils.js');
+const { fetch, search, guessFromMAL, CR_URL_REGEX } = require('./src/animeutils.js');
+const { runCrunchy, watchFeed } = require('./src/crunchy.js');
 
 if(config && !config.agree_to_license) {
   console.error('Before using this software you must read and agree to the LICENSE and set the agree_to_license property to true in the config.yml file');
   process.exit(1);
 }
 
-// Enable/disable console.log/process.stdout.write
-const log = console.log.bind(console);
-const writeBackup = process.stdout.write.bind(process.stdout);
-function setQuiet(enabled) {
-  const none = () => {};
-  console.log = enabled ? none : log;
-  process.stdout.write = enabled ? none : writeBackup;
-}
-
-// Check what shows we need to download, crunchy handles not downloading the same thing twice by accident
-async function watchFeed() {
-  const listPromise = fetchList(config.settings.myanimelist.username);
-  const items = (await fetchFeed()).rss.channel[0].item;
-  const list = await listPromise;
-
-  // Select only items that are in our config "shows" list
-  const toDownload = items.filter(i => i['crunchyroll:episodeNumber']).map(i => ({
-    date: i.pubDate[0],
-    episode: +i['crunchyroll:episodeNumber'][0],
-    link: i.link,
-    ... (_.find(config.shows || [], {crunchyroll: i.link[0].match(CR_URL_REGEX)[0]}) || {})
-  }))
-  .filter(i => i.title)
-  .filter(i => {
-    const malEntry = _.find(list, {anime_id: i.id}, {});
-    return malEntry && malEntry.num_watched_episodes < i.episode - i.offset;
-  });
-
-  // Create the data dir if it doesn't already exist
-  mkdir(config.settings.output_dir);
-  
-  // Build and write a batch file for crunchy
-  const shows = toDownload.map(({link}) => '@' + link).join('\n');
-  fs.writeFileSync(TEMP_BATCH_PATH, shows);
-
-  runCrunchy();
-}
-
-
-let anichartHeaders;
-// Cache headers needed for anichart api requests
-function getACHeaders() {
-  return new Promise((resolve, reject) => {
-    if(anichartHeaders) 
-      resolve(anichartHeaders);
-    else {      
-      request('http://anichart.net', (err, req, body) => {
-        if(err)
-          reject(err);
-        else
-          resolve(anichartHeaders = {
-            'X-CSRF-TOKEN': req.headers['set-cookie'][0].match(/XSRF-TOKEN=(.+?);/)[1],
-            Cookie: req.headers['set-cookie'].map(str => str.match(/^(.+?);/)[1]).join(';')
-          });
-      });
-    }
-  });
-}
-
-// Grab a free api token and run an api command
-function anichart(url) {
-  return new Promise(async (resolve, reject) => {
-    request({
-      url,
-      headers: await getACHeaders(),
-    }, (err, req, body) => {
-      if(err)
-        reject(err);
-      else
-        resolve(JSON.parse(body))
-    });
-  });
-}
-
-// Format seconds into a countdown clock string (3d 02h 01m)
-function countdown(secs) {
-  const pad = t => t < 10 ? '0' + t : t;
-  return `${Math.floor(secs / 60 / 60 / 24)}d ${pad(Math.floor(secs / 60 / 60) % 24)}h ${pad(Math.floor(secs / 60) % 60)}m`;
-}
-
 /* -- Command line functions -- */
-
 const program = require('commander')
   .description('autocr automates downloading anime from CrunchyRoll')
   .version(require('./package').version)
@@ -327,9 +32,9 @@ program
       return log('config.yml does not exist! run autocr init to create one');
 
     log('Fetching MAL...');
-    const becausePromise = fetchBecause();
+    const becausePromise = fetch.because();
     // Get currently watching shows from MyAnimeList
-    const list = await fetchList(config.settings.myanimelist.username);
+    const list = await fetch.mal(config.settings.myanimelist.username);
     await becausePromise;
 
     // Find the crunchyroll link for each of the shows
@@ -364,7 +69,7 @@ program
 
     log('Fetching MAL...');
     // Get currently watching shows from MyAnimeList
-    const list = await fetchList(config.settings.myanimelist.username);
+    const list = await fetch.mal(config.settings.myanimelist.username);
     
     const beforeLen = (config.shows || []).length;
 
@@ -387,7 +92,7 @@ program
       return log('config.yml does not exist! run autocr init to create one');
 
     log('Fetching MAL...');
-    const list = await fetchList(config.settings.myanimelist.username);
+    const list = await fetch.mal(config.settings.myanimelist.username);
 
     // Create the data dir if it doesn't already exist
     mkdir(config.settings.output_dir);
@@ -466,8 +171,8 @@ program
 
     log('Fetching AniChart...');
     animeListOnly && log('Fetching MyAnimeList...');
-    const malPromise = animeListOnly && fetchList(config.settings.myanimelist.username);
-    const airing = await anichart('http://anichart.net/api/airing');
+    const malPromise = animeListOnly && fetch.mal(config.settings.myanimelist.username);
+    const airing = await fetch.anichart('http://anichart.net/api/airing');
     const mal = malPromise ? await malPromise : [];
 
     // Only display shows with crunchyroll links
@@ -530,11 +235,11 @@ program
   .option('-e, --episode <eps>', 'Specify which episodes to download (in format crunchy uses)')
   .option('-m, --myanimelist', 'Also find MyAnimeList entry for the discovered show')
   .description('Search because.moe for the given title and return a crunchyroll link')
-  .action(async (search, options) => {
+  .action(async (query, options) => {
     const flags = Object.keys(options);
     const hasFlag = flags.includes.bind(flags);
     try {
-      const url = await (hasFlag('crunchy') ? searchCrunchyroll : searchBecause)(search);
+      const url = await (hasFlag('crunchy') ? search.crunchy : search.because)(query);
       
       if(!url) {
         console.error('No show found');
@@ -543,7 +248,7 @@ program
 
       // Search mal/add to list flag
       if(hasFlag('myanimelist') || hasFlag('add')) {
-        const [mal, title] = await searchMAL(search);
+        const [mal, title] = await search.mal(query);
 
         if(hasFlag('add')) {
           if(!config)
@@ -628,8 +333,8 @@ program
       return log('config.yml does not exist! run autocr init to create one');
 
     log('Fetching AniChart and MyAnimeList...\n');
-    const malPromise = fetchList(config.settings.myanimelist.username);
-    const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
+    const malPromise = fetch.mal(config.settings.myanimelist.username);
+    const airing = _.flatten(_.values(await fetch.anichart('http://anichart.net/api/airing')));
     const mal = await malPromise;
     const sortEpisode = hasFlag('sort');
 
