@@ -2,8 +2,23 @@
 <html>
 <head>
   <title>AutoCR</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
+  <div id="app">
+    <div v-if="loading" class="loader">
+      <span class="load-text">Loading Airing Shows...</span>
+    </div>
+    <div class="calendar" v-if="!loading">
+      <cal-day v-for="show, day in calendar"
+        v-bind:day="day"
+        v-bind:shows="show"
+        v-bind:key="day">
+      </cal-day>
+    </div>
+  </div>
 
+  <script src="vue.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

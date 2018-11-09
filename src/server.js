@@ -6,13 +6,14 @@ const _ = require('lodash');
 const { config } = require('./config.js');
 const { fetch } = require('./animeutils.js');
 
-app.use(express.static('server'));
+app.use(express.static(__dirname + '/server'));
+app.use(express.static(__dirname + '/../node_modules/vue/dist'));
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/server/index.html');
 });
 
-app.get('/airing', async (req, res) => {
+app.get('/api/airing', async (req, res) => {
   const malPromise = config && fetch.mal(config.settings.myanimelist.username);
   const airing = await fetch.anichart('http://anichart.net/api/airing');
   const mal = malPromise ? await malPromise : [];
@@ -30,7 +31,7 @@ app.get('/airing', async (req, res) => {
   res.json(airing);
 });
 
-app.get('/todo', async (req, res) => {
+app.get('/api/todo', async (req, res) => {
   if(!config)
     return res.status(422).json({message: 'Config.yml Needed. Restart app when config is updated.'});
 
