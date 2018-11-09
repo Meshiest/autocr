@@ -57,6 +57,12 @@ const app = new Vue({
 
 fetch('/api/airing').then(resp =>
   resp.json().then(blob => {
+    // Sort the shows by air time
+    for(let day in blob) {
+      blob[day] = blob[day].sort((a, b) =>
+        a.airing.time - b.airing.time);
+    }
+    
     app.calendar = blob;
     app.loading = false;
     console.log(blob);
