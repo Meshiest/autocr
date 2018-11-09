@@ -1,6 +1,8 @@
 const request = require('request');
 const cheerio = require('cheerio');
 const { parseString: parseXML } = require('xml2js');
+const { config } = require('./config.js');
+const _ = require('lodash');
 
 const CR_URL_REGEX = /https?:\/\/www.crunchyroll\.com\/(.+?)\//;
 
@@ -192,12 +194,54 @@ function anichart(url) {
   });
 }
 
+// Get a list of shows the user needs to catch up with
+async function todo() {
+  if(!config)
+    return [];
+
+  const malPromise = fetchList(config.settings.myanimelist.username);
+  const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
+
+  return (await malPromise).map(show => {
+    const base = {
+      title: show.anime_title,
+      total: show.anime_num_episodes,
+      score: show.score,
+      id: show.anime_id,
+      mal: `http://myanimelist.net/anime/${show.anime_id}`,
+    };
+
+    if(show.anime_airing_status === 1) {
+      const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
+      return {
+        count: (meta.airing.next_episode - 1) - show.num_watched_episodes,
+        begin: show.num_watched_episodes + 1,
+        end: (meta.airing.next_episode - 1),
+        airing: true,
+        ...base
+      };
+    }
+    if(show.anime_airing_status === 2) {
+      return {
+        count: show.anime_num_episodes - show.num_watched_episodes,
+        begin: show.num_watched_episodes + 1,
+        end: show.anime_num_episodes,
+        airing: false,
+        ...base
+      };
+    }
+    return {count: 0};
+  })
+  .filter(blob => blob.count > 0);
+}
+
 // Every function in this module returns a promise
 module.exports = {
   fetch: {
     mal: fetchList,
     feed: fetchFeed,
     because: fetchBecause,
+    todo,
     anichart,
   },
   search: {

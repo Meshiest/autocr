@@ -60,4 +60,4 @@ async function watchFeed() {
 module.exports = {
   runCrunchy,
   watchFeed,
-}
+};

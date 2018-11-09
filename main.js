@@ -5,7 +5,7 @@ const chokidar = require('chokidar');
 const path = require('path');
 const dateFormat = require('dateformat');
 
-const { config, writeConfig } = require('./src/config.js');
+const { config, writeConfig, BLANK_CONFIG } = require('./src/config.js');
 const { mkdir, log, setQuiet, countdown } = require('./src/utils.js');
 const { fetch, search, guessFromMAL, CR_URL_REGEX } = require('./src/animeutils.js');
 const { runCrunchy, watchFeed } = require('./src/crunchy.js');
@@ -297,21 +297,7 @@ program
     // Create the default config file
     if(!config) {
       log('Remember to update the default values in your newly created config file!');
-      writeConfig({
-        agree_to_license: false,
-        settings: {
-          myanimelist: {
-            username: 'MAL_USERNAME',
-          },
-          crunchyroll: {
-            username: 'CRUNCHYROLL_USERNAME',
-            password: 'CRUNCHYROLL_PASSWORD',
-          },
-          feed_interval_mins: 60,
-          output_dir: 'downloads',
-        },
-        shows: null,
-      }, true, hasFlag('home'));
+      writeConfig(BLANK_CONFIG, true, hasFlag('home'));
     } else {
       log('Config file already exists!');
     }
@@ -328,59 +314,29 @@ program
   .action(async flags => {
     flags = Object.keys(flags);
     const hasFlag = flags.includes.bind(flags);
+    const sortEpisode = hasFlag('sort');
 
     if(!config)
       return log('config.yml does not exist! run autocr init to create one');
 
     log('Fetching AniChart and MyAnimeList...\n');
-    const malPromise = fetch.mal(config.settings.myanimelist.username);
-    const airing = _.flatten(_.values(await fetch.anichart('http://anichart.net/api/airing')));
-    const mal = await malPromise;
-    const sortEpisode = hasFlag('sort');
 
     let total = 0;
-    mal.map(show => {
-      const base = {title: show.anime_title, total: show.anime_num_episodes, score: show.score};
+    (await fetch.todo())
+      .filter(blob => hasFlag('list') ? _.find(config.shows || [], {id: blob.id}) : true)
+      .filter(blob => hasFlag('airing') ? blob.airing : true)
+      .sort((a, b) => sortEpisode ? b.count - a.count : b.score - a.score)
+      .forEach(blob => {
+        total += blob.count;
+        const start = hasFlag('episode') ? (
+          _.padStart(blob.end - blob.begin <= 0 ? blob.begin : blob.begin + '-' + blob.end, 7)
+        ) : _.padStart(blob.count, 3);
 
-      if(hasFlag('list') && !_.find(config.shows || [], {id: show.anime_id}))
-        return {count: 0};
-
-      if(show.anime_airing_status === 1) {
-        const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
-        return {
-          count: (meta.airing.next_episode - 1) - show.num_watched_episodes,
-          begin: show.num_watched_episodes + 1,
-          end: (meta.airing.next_episode - 1),
-          airing: true,
-          ...base
-        };
-      }
-      if(show.anime_airing_status === 2) {
-        if(hasFlag('airing'))
-          return {count: 0};
-        return {
-          count: show.anime_num_episodes - show.num_watched_episodes,
-          begin: show.num_watched_episodes + 1,
-          end: show.anime_num_episodes,
-          ...base
-        };
-      }
-      return {count: 0};
-    })
-    .filter(blob => blob.count > 0)
-    .sort((a, b) => sortEpisode ? b.count - a.count : b.score - a.score)
-    .forEach(blob => {
-      total += blob.count;
-      const start = hasFlag('episode') ? (
-        _.padStart(blob.end - blob.begin <= 0 ? blob.begin : blob.begin + '-' + blob.end, 7)
-      ) : _.padStart(blob.count, 3);
-
-      log(`${start}/${_.padEnd(blob.total || '?', 3)} - ${blob.airing && !hasFlag('airing') ? '*' : ''}${blob.title}`);
-    });
+        log(`${start}/${_.padEnd(blob.total || '?', 3)} - ${blob.airing && !hasFlag('airing') ? '*' : ''}${blob.title}`);
+      });
 
     if(hasFlag('count'))
       log('\nTotal Episodes:', total);
-
   });
 
 // Parse command line args and run commands!
