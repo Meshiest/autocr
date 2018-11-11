@@ -87,28 +87,49 @@ const app = new Vue({
   },
 })
 
+const isElectron = typeof require === 'function';
+
+async function airing() {
+  if(isElectron) {
+    return await require('../animeutils.js').fetch.airing();
+  } else {
+    const resp = await fetch('/api/airing');
+    return await resp.json();
+  }
+}
+
+async function todo() {
+  if(isElectron) {
+    if(!require('../config.js').config)
+      return [];
+
+    return await require('../animeutils.js').fetch.todo();
+  } else {
+    const resp = await fetch('/api/todo');
+    return await resp.json();
+  }
+}
+
 function update() {
-  fetch('/api/airing').then(resp =>
-    resp.json().then(blob => {
-      // Sort the shows by air time
-      for(let day in blob) {
-        blob[day] = blob[day].sort((a, b) =>
-          a.airing.time - b.airing.time);
-      }
+  airing().then(blob => {
+    // Sort the shows by air time
+    for(let day in blob) {
+      blob[day] = blob[day].sort((a, b) =>
+        a.airing.time - b.airing.time);
+    }
 
-      app.calendar = blob;
-      app.loading = false;
-    }));
+    app.calendar = blob;
+    app.loading = false;
+  });
 
-  fetch('/api/todo').then(resp =>
-    resp.json().then(blob => {
-      let todo = {};
+  todo().then(blob => {
+    let todo = {};
 
-      for(let show of blob)
-        todo[show.ani_id] = show;
+    for(let show of blob)
+      todo[show.ani_id] = show;
 
-      app.todo = todo;
-    }));
+    app.todo = todo;
+  });
 }
 
 update();
@@ -116,7 +137,7 @@ setInterval(update, 60 * 60 * 1000);
 
 // Open link externally if we're in electron
 function clickLink(event) {
-  if(typeof require !== 'function')
+  if(!isElectron)
     return;
 
   event.preventDefault();

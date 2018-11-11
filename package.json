@@ -8,7 +8,8 @@
   "description": "An automatic anime downloader given a MyAnimeList and a Crunchyroll account",
   "main": "main.js",
   "scripts": {
-    "start": "node ./bin/autocr"
+    "start": "node ./bin/autocr",
+    "dash": "electron ./src/window.js"
   },
   "author": "Meshiest",
   "engines": {

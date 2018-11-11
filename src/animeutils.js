@@ -235,6 +235,24 @@ async function todo() {
   });
 }
 
+async function airing() {
+  const malPromise = config && fetchList(config.settings.myanimelist.username);
+  const airing = await anichart('http://anichart.net/api/airing');
+  const mal = malPromise ? await malPromise : [];
+
+  _.each(airing, shows => {
+    shows.map(show => {
+      const malId = show.mal_link.match(/\d+$/);
+      const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
+
+      show.onMyMal = malId && _.find(mal, {anime_id: parseInt(malId[0])});
+      show.onMyConfig = config && config.shows && crLink && _.find(config.shows, s => s.crunchyroll.match(crLink.url));
+    });
+  });
+
+  return airing;
+}
+
 // Every function in this module returns a promise
 module.exports = {
   fetch: {
@@ -243,6 +261,7 @@ module.exports = {
     because: fetchBecause,
     todo,
     anichart,
+    airing,
   },
   search: {
     because: searchBecause,

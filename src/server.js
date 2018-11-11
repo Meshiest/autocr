@@ -9,28 +9,13 @@ const { config } = require('./config.js');
 const { fetch } = require('./animeutils.js');
 
 app.use(express.static(__dirname + '/server'));
-app.use(express.static(__dirname + '/../node_modules/vue/dist'));
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/server/index.html');
 });
 
 app.get('/api/airing', async (req, res) => {
-  const malPromise = config && fetch.mal(config.settings.myanimelist.username);
-  const airing = await fetch.anichart('http://anichart.net/api/airing');
-  const mal = malPromise ? await malPromise : [];
-
-  _.each(airing, shows => {
-    shows.map(show => {
-      const malId = show.mal_link.match(/\d+$/);
-      const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
-
-      show.onMyMal = malId && _.find(mal, {anime_id: parseInt(malId[0])});
-      show.onMyConfig = config && config.shows && crLink && _.find(config.shows, s => s.crunchyroll.match(crLink.url));
-    });
-  });
-
-  res.json(airing);
+  res.json(await fetch.airing());
 });
 
 app.get('/api/todo', async (req, res) => {

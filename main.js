@@ -362,7 +362,6 @@ program
       return log('config.yml does not exist! run autocr init to create one');
 
     if(hasFlag('window')) {
-      startServer();
       startApp();
     } else {
       startServer();
