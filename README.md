@@ -32,7 +32,8 @@ There are a few features that do not necessitate downloading any anime!
 6. `autocr init` - Create default config file in current directory
 
 ## Commands
-
+  
+    -h, --help                 output usage information
     pull|p                     Pull currently watching shows from MyAnimeList and populate config file
     cull|c                     Cull shows that are not currently watched from the config file
     get|g                      Download latest episodes all at once
@@ -68,6 +69,7 @@ There are a few features that do not necessitate downloading any anime!
       -h, --help               output usage information
     dash|d [options]           Runs a webserver with todo and airing pages in fancy format
       -w, --window             Pop up an electron window
+      -h, --help               output usage information
 
 
 
