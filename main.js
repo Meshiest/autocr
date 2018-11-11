@@ -8,7 +8,7 @@ const dateFormat = require('dateformat');
 const { config, writeConfig, BLANK_CONFIG } = require('./src/config.js');
 const { mkdir, log, setQuiet, countdown } = require('./src/utils.js');
 const { fetch, search, guessFromMAL, CR_URL_REGEX } = require('./src/animeutils.js');
-const { runCrunchy, watchFeed } = require('./src/crunchy.js');
+const { runCrunchy, watchFeed, TEMP_BATCH_PATH } = require('./src/crunchy.js');
 const { startServer, startApp } = require('./src/server.js');
 
 if(config && !config.agree_to_license) {

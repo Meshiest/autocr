@@ -60,4 +60,5 @@ async function watchFeed() {
 module.exports = {
   runCrunchy,
   watchFeed,
+  TEMP_BATCH_PATH,
 };
