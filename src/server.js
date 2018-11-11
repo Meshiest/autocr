@@ -4,7 +4,6 @@ const http = require('http').Server(app);
 const _ = require('lodash');
 
 const proc = require('child_process');
-const electron = require('electron');
 
 const { config } = require('./config.js');
 const { fetch } = require('./animeutils.js');
@@ -48,7 +47,7 @@ function startServer() {
 }
 
 function startApp() {
-  const sp = proc.spawn(electron, [__dirname + '/window.js']);
+  const sp = proc.spawn(require('electron'), [__dirname + '/window.js']);
   sp.on('error', (err) => {
     console.log('failed to start process', err);
   });

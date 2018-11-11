@@ -5,7 +5,6 @@
 }
 
 body, html {
-  filter: blur(0);
   min-height: 100vh;
   background-color: #f5f5f5;
   /*background-image: url(./img/background-00.jpg);*/
@@ -83,24 +82,11 @@ body {
   width: 100%;
 }
 
-.calendar::before {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  content: '';
-  z-index: 10;
-  height: 30px;
-  backdrop-filter: blur(4px);
-}
-
 .calendar-day {
   flex: 1;
 }
 
 .calendar-day header {
-  position: sticky;
   z-index: 100;
   top: 0;
   height: 30px;
@@ -108,8 +94,7 @@ body {
   font-weight: bold;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  /*text-shadow: 0 0 4px #f5f5f5;*/
+  color: #444;
   text-align: center;
   text-transform: capitalize;
 }

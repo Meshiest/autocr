@@ -10,11 +10,7 @@ app.on('ready', () => {
     autoHideMenuBar: true,
     useContentSize: true,
     resizable: true,
-    webPreferences: {
-      experimentalFeatures: true,
-    },
   });
-  console.log('connected to', port);
   mainWindow.loadURL('http://localhost:' + port);
   mainWindow.focus();
 });

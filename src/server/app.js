@@ -53,13 +53,18 @@ Vue.component('cal-day', {
               v-if="link.site == 'Crunchyroll'"
               class="crunchy"
               target="_blank"
+              onclick="clickLink(event)"
               v-bind:href="link.url"></a>
             <a v-for="link in show.external_links"
               v-if="link.site == 'Amazon'"
               target="_blank"
               class="amazon"
+              onclick="clickLink(event)"
               v-bind:href="link.url"></a>
-            <a class="mal" v-bind:href="show.mal_link" target="_blank"></a>
+            <a class="mal"
+              v-bind:href="show.mal_link"
+              onclick="clickLink(event)"
+              target="_blank"></a>
           </div>
         </article>
       </section>
@@ -108,3 +113,13 @@ function update() {
 
 update();
 setInterval(update, 60 * 60 * 1000);
+
+// Open link externally if we're in electron
+function clickLink(event) {
+  if(typeof require !== 'function')
+    return;
+
+  event.preventDefault();
+  let link = event.target.href;
+  require("electron").shell.openExternal(link);
+}
