@@ -10,6 +10,7 @@ app.on('ready', () => {
     autoHideMenuBar: true,
     useContentSize: true,
     resizable: true,
+    icon: __dirname + '/server/favicon.ico',
   });
   mainWindow.loadURL('http://localhost:' + port);
   mainWindow.focus();
