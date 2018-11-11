@@ -352,7 +352,7 @@ program
 program
   .command('dash')
   .alias('d')
-  .description('WIP - Runs a webserver with todo and airing pages in fancy format')
+  .description('Runs a webserver with todo and airing pages in fancy format')
   .option('-w, --window', 'Pop up an electron window')
   .action(options => {
     const flags = Object.keys(options);
