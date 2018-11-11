@@ -4,6 +4,7 @@ const commander = require('commander');
 const chokidar = require('chokidar');
 const path = require('path');
 const dateFormat = require('dateformat');
+const proc = require('child_process');
 
 const { config, writeConfig, BLANK_CONFIG } = require('./src/config.js');
 const { mkdir, log, setQuiet, countdown } = require('./src/utils.js');
@@ -366,6 +367,30 @@ program
     } else {
       startServer();
     }
+  });
+
+program
+  .command('update')
+  .alias('u')
+  .description('Download latest episodes and keep downloading as they come out')
+  .action(() => {
+    const sp = proc.spawn(process.argv[0], process.argv.slice(1).map(a => a.replace('gw', 'get')));
+
+    sp.stdout.on('data', data => {
+      process.stdout.write(data.toString());
+    });
+
+    sp.stderr.on('data', data => {
+      process.stderr.write(data.toString());
+    });
+
+    sp.on('error', err => {
+      console.log('failed to start process', err);
+    });
+
+    sp.on('exit',(code, signal) => {
+      program.emit('command:watch');
+    });
   });
 
 // Parse command line args and run commands!

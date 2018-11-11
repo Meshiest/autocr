@@ -37,6 +37,7 @@ There are a few features that do not necessitate downloading any anime!
     cull|c                     Cull shows that are not currently watched from the config file
     get|g                      Download latest episodes all at once
     watch|w                    Download latest episodes as they come out on CrunchyRoll
+    update|u                   Download latest episodes and keep downloading as they come out
     airing|a [options]         View currently airing shows from AniChart
       -a, --all                Show all series information
       -d, --description        Show series descriptions
