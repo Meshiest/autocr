@@ -374,7 +374,7 @@ program
   .alias('u')
   .description('Download latest episodes and keep downloading as they come out')
   .action(() => {
-    const sp = proc.spawn(process.argv[0], process.argv.slice(1).map(a => a.replace('gw', 'get')));
+    const sp = proc.spawn(process.argv[0], process.argv.slice(1).map(a => a.replace(/^u(pdate)?$/, 'get')));
 
     sp.stdout.on('data', data => {
       process.stdout.write(data.toString());
