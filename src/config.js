@@ -40,4 +40,5 @@ config && mkdir(config.settings.output_dir);
 module.exports = {
   config,
   writeConfig,
+  BLANK_CONFIG,
 };
