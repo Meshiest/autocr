@@ -1,7 +1,7 @@
 const os = require('os');
 const yaml = require('js-yaml');
 const fs = require('fs');
-const { mkdir } = require('./utils.js');
+const { mkdir, log } = require('./utils.js');
 
 const HOME_PATH = os.homedir() + '/.autocr.yml';
 const CONFIG_PATH = fs.existsSync(HOME_PATH) ? HOME_PATH : 'config.yml';
