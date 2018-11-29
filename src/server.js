@@ -22,7 +22,7 @@ app.get('/api/todo', async (req, res) => {
   if(!config)
     return res.status(422).json({message: 'Config.yml Needed. Restart app when config is updated.'});
 
-  res.json(await fetch.todo({image: true}));
+  res.json(await fetch.todo());
 });
 
 function startServer() {

@@ -7,12 +7,12 @@
   <link rel="stylesheet" type="text/css" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body>
+<body class="default-bg">
   <div id="app">
     <div v-if="loading" class="loader">
       <span class="load-text">Loading Airing Shows...</span>
     </div>
-    <div class="calendar" v-if="!loading">
+    <div :class="['calendar', { rotated: settings.rotated }]" v-if="!loading">
       <cal-day v-for="shows, day in calendar"
         v-bind="{key: day, shows, todo, day, filters, settings}">
       </cal-day>
@@ -24,8 +24,46 @@
         <toggle v-model="filters.amazon" @input="updateFilters" label="Has Amazon"></toggle>
       </tool>
       <tool icon="cog" title="Settings">
-        <toggle v-model="settings.english" label="English Titles"></toggle>
-        <toggle v-model="settings.hideLinks" label="Hide Links"></toggle>
+        <toggle v-model="settings.english"
+          @input="updateSettings"
+          label="English Titles">
+        </toggle>
+        <toggle v-model="settings.hideLinks"
+          @input="updateSettings"
+          label="Hide Links">
+        </toggle>
+        <toggle v-model="settings.rotated"
+          @input="updateSettings"
+          label="Rotated">
+        </toggle>
+        <dropdown v-model="settings.background"
+          @input="updateBG(JSON.parse($event.target.value));updateSettings()"
+          label="Background"
+          :options="[
+            {text: 'Default Gradient', value: {type: 'class', value: 'default-bg'}},
+            {text: 'Light Gray', value: {type: 'class', value: 'grey-bg'}},
+            {text: 'Rainy Sky', value: {type: 'image', value: 'img/rainy-sky.jpg'}},
+            {text: 'Roof Fence', value: {type: 'image', value: 'img/roof-fence.jpg'}},
+          ]">
+        </dropdown>
+      </tool>
+    </div>
+    <div class="tools-container right" v-if="!loading">
+      <tool icon="clipboard-list" title="Todo">
+        <div v-for="show in sortedTodo" :class="['todo-list-item', {done: show.count == 0}]">
+          <span class="title">
+            {{ show.title }}
+          </span>
+          <span class="interval">
+            {{
+              show.count > 0 ? (
+                show.end - show.begin <= 0 ?
+                show.begin :
+                show.begin + '-' + show.end
+              ) : '&check;'
+            }}
+          </span>
+        </div>
       </tool>
     </div>
   </div>

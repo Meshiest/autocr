@@ -4,6 +4,8 @@ app.on('ready', () => {
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    minHeight: 300,
+    minWidth: 300,
     autoHideMenuBar: true,
     useContentSize: true,
     resizable: true,

@@ -39,10 +39,30 @@ Vue.component('tool', {
 Vue.component('toggle', {
   props: ['value', 'disabled', 'label'],
   template: `
-    <span class="checkbox" @click="!disabled && $emit('input', !value)">
+    <div class="checkbox" @click="!disabled && $emit('input', !value)">
       <i :class="['fas', 'fa-' + (value ? 'check-square' : 'square'), { disabled }]"></i> {{ label }}
-    </span>
-  `
+    </div>
+  `,
+});
+
+Vue.component('dropdown', {
+  props: ['value', 'disabled', 'label', 'options'],
+  template: `
+    <div class="dropdown">
+      <label for="dropdown">
+        {{ label }}
+      </label>
+      <select name="dropdown"
+        :disabled="disabled"
+        @input="$emit('input', $event)"
+        v-model="JSON.stringify(value)">
+        <option v-for="option in options"
+          :value="JSON.stringify(option.value)">
+          {{ option.text }}
+        </option>
+      </select>
+    </div>
+  `,
 });
 
 Vue.component('cal-day', {
@@ -111,11 +131,35 @@ Vue.component('cal-day', {
 const app = new Vue({
   el: '#app',
   methods: {
-    updateFilters(val) {
+    updateFilters() {
       localStorage.autocrFilters = JSON.stringify(this.filters);
     },
-    updateSettings(val) {
+    updateSettings() {
+      this.updateBG();
       localStorage.autocrSettings = JSON.stringify(this.settings);
+    },
+    updateBG(bg) {
+      bg = bg || this.settings.background || {type: 'class', value: 'default-bg'};
+      this.settings.background = bg;
+      if(bg.type === 'class') {
+        document.body.className = bg.value;
+        document.body.style.backgroundImage = '';
+      } else {
+        document.body.className = '';
+        document.body.style.backgroundImage = `url(${bg.value})`;
+      }
+    }
+  },
+  created() {
+    this.updateBG();
+  },
+  computed: {
+    sortedTodo() {
+      let arr = [];
+      for(let i in this.todo) {
+        arr.push(this.todo[i]);
+      }
+      return arr.sort((a, b) => b.count - a.count);
     }
   },
   data: {
@@ -147,7 +191,7 @@ async function airing() {
     return await require('../animeutils.js').fetch.airing();
   } else {
     const resp = await fetch('/api/airing');
-    return await resp.json({images: true});
+    return await resp.json();
   }
 }
 
