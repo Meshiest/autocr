@@ -2,6 +2,8 @@
 <html>
 <head>
   <title>Auto CR Dashboard</title>
+  <link rel="stylesheet" type="text/css" href="fontawesome.min.css">
+  <link rel="stylesheet" type="text/css" href="solid.min.css">
   <link rel="stylesheet" type="text/css" href="style.css">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
@@ -11,12 +13,20 @@
       <span class="load-text">Loading Airing Shows...</span>
     </div>
     <div class="calendar" v-if="!loading">
-      <cal-day v-for="show, day in calendar"
-        v-bind:day="day"
-        v-bind:shows="show"
-        v-bind:todo="todo"
-        v-bind:key="day">
+      <cal-day v-for="shows, day in calendar"
+        v-bind="{key: day, shows, todo, day, filters, settings}">
       </cal-day>
+    </div>
+    <div class="tools-container" v-if="!loading">
+      <tool icon="filter" title="Filters">
+        <toggle v-model="filters.showAll" @input="updateFilters" label="All Shows"></toggle>
+        <toggle v-model="filters.crunchy" @input="updateFilters" label="Has Crunchyroll"></toggle>
+        <toggle v-model="filters.amazon" @input="updateFilters" label="Has Amazon"></toggle>
+      </tool>
+      <tool icon="cog" title="Settings">
+        <toggle v-model="settings.english" label="English Titles"></toggle>
+        <toggle v-model="settings.hideLinks" label="Hide Links"></toggle>
+      </tool>
     </div>
   </div>
 

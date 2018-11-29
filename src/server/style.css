@@ -107,6 +107,11 @@ body {
   margin: 4px 2px;
   padding-top: 100%;
   position: relative;
+  transition: opacity 0.5s ease;
+}
+
+.calendar-show:not([my-list]):not(:hover) {
+  opacity: 0.5;
 }
 
 .calendar-show .time {
@@ -260,4 +265,57 @@ body {
   .time {
     font-size: 10px;
   }
+}
+
+.tools-container {
+  align-items: flex-end;
+  bottom: 0;
+  display: flex;
+  left: 0;
+  position: fixed;
+  z-index: 100;
+}
+
+.tools {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  height: 32px;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.5s ease;
+  width: 32px;
+}
+
+.tools header {
+  cursor: pointer;
+  position: absolute;
+  width: 200px;
+}
+
+.tools .content {
+  padding: 8px;
+  position: absolute;
+  top: 32px;
+  width: 200px;
+}
+
+.tools i.icon{
+  height: 16px;
+  margin: 8px;
+  width: 16px;
+}
+
+.tools.focused {
+  height: 300px;
+  width: 200px;
+}
+
+.checkbox {
+  display: block;
+  cursor: pointer;
+  margin: 4px 0;
+}
+
+.checkbox .fas {
+  margin-right: 8px;
 }

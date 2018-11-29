@@ -19,8 +19,39 @@ Vue.component('clock', {
   },
 });
 
+Vue.component('tool', {
+  props: ['icon', 'title'],
+  data: () => ({
+    focused: false,
+  }),
+  template: `
+    <div :class="['tools', { focused }]">
+      <header @click="focused = !focused">
+        <i :class="['icon', 'fas', 'fa-' + icon]"></i> {{ title }}
+      </header>
+      <div class="content">
+        <slot></slot>
+      </div>
+    </div>
+  `,
+});
+
+Vue.component('toggle', {
+  props: ['value', 'disabled', 'label'],
+  template: `
+    <span class="checkbox" @click="!disabled && $emit('input', !value)">
+      <i :class="['fas', 'fa-' + (value ? 'check-square' : 'square'), { disabled }]"></i> {{ label }}
+    </span>
+  `
+});
+
 Vue.component('cal-day', {
-  props: ['day', 'shows', 'todo'],
+  props: ['day', 'shows', 'todo', 'filters', 'settings'],
+  methods: {
+    hasLink(show, type) {
+      return show.external_links.filter(link => link.site == type).length > 0;
+    }
+  },
   template: `
     <div class="calendar-day">
       <header>
@@ -29,17 +60,22 @@ Vue.component('cal-day', {
       <section class="calendar-shows">
         <article v-for="show in shows"
           class="calendar-show"
-          v-if="show.onMyMal"
-          v-bind:key="show.id">
-          <img v-bind:src="show.image">
+          v-if="(filters.showAll || show.onMyMal) && (
+            filters.crunchy && hasLink(show, 'Crunchyroll') ||
+            filters.amazon && hasLink(show, 'Amazon') ||
+            !filters.crunchy && !filters.amazon
+          )"
+          :my-list="!!show.onMyMal"
+          :key="show.id">
+          <img :src="show.image">
           <div class="title">
-            {{ show.title_romaji }}
+            {{ settings.english ? show.title_english : show.title_romaji }}
           </div>
           <div class="episode" v-if="show.airing.next_episode">
             {{ show.airing.next_episode }}/{{ show.duration || '?' }}
           </div>
           <div class="time">
-            <clock v-bind:time="show.airing.time"></clock>
+            <clock :time="show.airing.time"></clock>
           </div>
           <div class="todo" v-if="todo[show.id] && todo[show.id].count">
             {{
@@ -48,21 +84,21 @@ Vue.component('cal-day', {
               todo[show.id].begin + '-' + todo[show.id].end
             }}
           </div>
-          <div class="links">
+          <div class="links" v-if="!settings.hideLinks">
             <a v-for="link in show.external_links"
-              v-if="link.site == 'Crunchyroll'"
+              v-if="link.site === 'Crunchyroll'"
               class="crunchy"
               target="_blank"
               onclick="clickLink(event)"
-              v-bind:href="link.url"></a>
+              :href="link.url"></a>
             <a v-for="link in show.external_links"
-              v-if="link.site == 'Amazon'"
+              v-if="link.site === 'Amazon'"
               target="_blank"
               class="amazon"
               onclick="clickLink(event)"
-              v-bind:href="link.url"></a>
+              :href="link.url"></a>
             <a class="mal"
-              v-bind:href="show.mal_link"
+              :href="show.mal_link"
               onclick="clickLink(event)"
               target="_blank"></a>
           </div>
@@ -74,8 +110,25 @@ Vue.component('cal-day', {
 
 const app = new Vue({
   el: '#app',
+  methods: {
+    updateFilters(val) {
+      localStorage.autocrFilters = JSON.stringify(this.filters);
+    },
+    updateSettings(val) {
+      localStorage.autocrSettings = JSON.stringify(this.settings);
+    }
+  },
   data: {
     loading: true,
+    filters: localStorage.autocrFilters ? JSON.parse(localStorage.autocrFilters) : {
+      showAll: false,
+      crunchy: false,
+      amazon: false,
+    },
+    settings: localStorage.autocrSettings ? JSON.parse(localStorage.autocrSettings) : {
+      english: false,
+      hideLinks: false,
+    },
     todo: {},
     calendar: {
       monday: [],
