@@ -195,7 +195,9 @@ function anichart(url) {
 }
 
 // Get a list of shows the user needs to catch up with
-async function todo() {
+async function todo(options) {
+  options = options || {};
+
   if(!config)
     return [];
 
@@ -210,6 +212,9 @@ async function todo() {
       mal_id: show.anime_id,
       mal: `http://myanimelist.net/anime/${show.anime_id}`,
     };
+
+    if(options.images)
+      base.image = show.anime_image_path;
 
     if(show.anime_airing_status === 1) {
       const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
@@ -244,6 +249,7 @@ async function airing() {
     shows.map(show => {
       const malId = show.mal_link.match(/\d+$/);
       const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
+      show.crLink = crLink;
 
       show.onMyMal = malId && _.find(mal, {anime_id: parseInt(malId[0])});
       show.onMyConfig = config && config.shows && crLink && _.find(config.shows, s => s.crunchyroll.match(crLink.url));

@@ -147,7 +147,7 @@ async function airing() {
     return await require('../animeutils.js').fetch.airing();
   } else {
     const resp = await fetch('/api/airing');
-    return await resp.json();
+    return await resp.json({images: true});
   }
 }
 
