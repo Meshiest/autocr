@@ -38,22 +38,28 @@ let config = fs.existsSync(CONFIG_PATH) && yaml.safeLoad(fs.readFileSync(CONFIG_
 
 config && mkdir(config.settings.output_dir);
 
-function backgrounds(paths=false) {
-  let outputDirBGs = [];
-  let localBGs = fs.readdirSync('./custom_backgrounds');
+function backgrounds(paths) {
   const cwd = process.cwd();
+  const localPath = path.resolve(cwd, __dirname + '/../custom_backgrounds');
+  const outputPath = path.resolve(cwd, config.settings.output_dir + '/custom_backgrounds');
 
-  if(config && fs.existsSync(config.settings.output_dir + '/custom_backgrounds')) {
-    outputDirBGs = fs.readdirSync(config.settings.output_dir + '/custom_backgrounds');
+  let outputDirBGs = [];
+  let localBGs = fs.readdirSync(localPath);
+
+  if(config && fs.existsSync(outputPath)) {
+    outputDirBGs = fs.readdirSync(outputPath);
   }
+
   if(paths) {
-    outputDirBGs.map(bg => path.resolve(cwd, config.settings.output_dir + '/custom_backgrounds/' + bg));
-    localBGs.map(bg => path.resolve(cwd, './custom_backgrounds/' + bg));
+    outputDirBGs = outputDirBGs.map(bg => outputPath + '/' + bg);
+    localBGs = localBGs.map(bg => localPath + '/' + bg);
   }
+
   return _.uniq([].concat(
     localBGs,
     outputDirBGs,
   )
+  .map(str => str.replace(/\\/g, '/'))
   .filter(str => str.match(/\.(png|jpe?g|gif|bmp)$/)));
 }
 

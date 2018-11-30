@@ -141,10 +141,10 @@ async function airing() {
 
 function transformStr(str) {
   return str
+    .replace(/^.+[\\\/]/, '')
     .replace(/\.\w+$/, '')
-    .replace(/\.\w+$/, '')
-    .replace(/(^|-_)(\w)/g, c => c.toUpperCase())
-    .replace(/-_/g, ' ');
+    .replace(/(^|[-_])(\w)/g, c => c.toUpperCase())
+    .replace(/[-_]/g, ' ');
 }
 
 async function backgroundList() {
