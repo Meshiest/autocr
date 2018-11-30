@@ -5,20 +5,49 @@
   -webkit-user-select: none;
 }
 
+html {
+  background-color: #444;
+}
+
+[v-cloak] {
+  display: none;
+}
+
 body {
-  min-height: 100vh;
+  overflow: initial;
+  --background: none;
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  background: var(--background);
   background-position: 50% 50%;
+  background-repeat: no-repeat;
   background-size: cover;
   background-attachment: fixed;
-  overflow: initial;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  position: fixed;
 }
 
-body.default-bg {
-  background: linear-gradient(to bottom, #fff 20%, #f5f5f5 50%, #aaa);
+body:hover::before {
+  top: 0;
+  left: 0;
 }
 
-body.gray-bg {
-  background: #f5f5f5;
+body.blur::before {
+  filter: blur(4px);
+}
+
+body.default-bg::before {
+  --background: linear-gradient(to bottom, #fff 20%, #f5f5f5 50%, #aaa);
+}
+
+body.grey-bg::before {
+  --background: #f5f5f5;
 }
 
 ::-webkit-scrollbar {
@@ -49,31 +78,33 @@ body.gray-bg {
   font-weight: bold;
   padding: 8px;
   position: relative;
-  color: #444;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 16px;
 }
 
 .load-text::after {
   animation: loading 1s ease-in-out alternate infinite;
   background-color: #df6300;
   border-radius: 2px;
-  bottom: 0;
+  bottom: 8px;
   content: '';
   height: 4px;
-  left: 0;
+  left: 16px;
   position: absolute;
   width: 50px;
 }
 
 @keyframes loading {
   0% {
-    left: 0;
+    left: 16px;
     width: 50px;
   }
   50% {
     width: 80px;
   }
   100% {
-    left: calc(100% - 50px);
+    left: calc(100% - 66px);
     width: 50px;
   }
 }
@@ -91,9 +122,24 @@ body.gray-bg {
   padding-bottom: 32px;
 }
 
+.calendar::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 30px;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
 .calendar-day {
   margin: 0 2px;
   width: 100px;
+}
+
+.calendar-shows {
+  margin-top: 32px;
 }
 
 .calendar-day header {
@@ -105,9 +151,10 @@ body.gray-bg {
   font-weight: bold;
   align-items: center;
   justify-content: center;
-  color: #444;
+  color: #fff;
   text-align: center;
   text-transform: capitalize;
+  position: fixed;
 }
 
 .calendar-show {
@@ -193,6 +240,7 @@ body.gray-bg {
 
 .rotated.calendar {
   flex-direction: column;
+  padding-left: 0;
   max-width: 100%;
 }
 
@@ -205,6 +253,7 @@ body.gray-bg {
 .rotated .calendar-shows {
   display: flex;
   flex-flow: row wrap;
+  margin-top: 0;
 }
 
 .rotated .calendar-show {
@@ -215,9 +264,25 @@ body.gray-bg {
 }
 
 .rotated .calendar-day header {
-  transform: rotate(-90deg);
   height: 100px;
+  position: relative;
+  transform: rotate(-90deg);
   width: 30px;
+}
+
+.rotated.calendar::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 30px;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.rotated.calendar + .tools-container {
+  left: 30px;
 }
 
 .links a {
@@ -312,6 +377,7 @@ body.gray-bg {
   left: 0;
   position: fixed;
   z-index: 100;
+  transition: left .5s ease;
 }
 
 .tools-container.right {

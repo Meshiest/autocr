@@ -8,11 +8,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body class="default-bg">
-  <div id="app">
+  <div id="app" v-cloak>
     <div v-if="loading" class="loader">
       <span class="load-text">Loading Airing Shows...</span>
     </div>
-    <div :class="['calendar', { rotated: settings.rotated }]" v-if="!loading">
+    <div :class="['calendar', { rotated: settings.rotated }]" v-if="!loading" v-cloak>
       <cal-day v-for="shows, day in calendar"
         v-bind="{key: day, shows, todo, day, filters, settings}">
       </cal-day>
@@ -44,8 +44,14 @@
             {text: 'Light Gray', value: {type: 'class', value: 'grey-bg'}},
             {text: 'Rainy Sky', value: {type: 'image', value: 'img/rainy-sky.jpg'}},
             {text: 'Roof Fence', value: {type: 'image', value: 'img/roof-fence.jpg'}},
+            {text: 'Sunset Coast', value: {type: 'image', value: 'img/sunset-coast.jpg'}},
+            {text: 'Seaside Pool', value: {type: 'image', value: 'img/seaside-pool.jpg'}},
           ]">
         </dropdown>
+        <toggle v-model="settings.blurBg"
+          @input="updateSettings"
+          label="Blur Background">
+        </toggle>
       </tool>
     </div>
     <div class="tools-container right" v-if="!loading">

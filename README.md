@@ -71,7 +71,10 @@ There are a few features that do not necessitate downloading any anime!
       -w, --window             Pop up an electron window
       -h, --help               output usage information
 
+## Screenshots
 
+<img src="https://i.imgur.com/qXXNTTL.jpg" width="512"/>
+<img src="https://i.imgur.com/32i8kIW.jpg" width="512"/>
 
 ## Notes
 

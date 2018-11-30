@@ -143,11 +143,14 @@ const app = new Vue({
       this.settings.background = bg;
       if(bg.type === 'class') {
         document.body.className = bg.value;
-        document.body.style.backgroundImage = '';
+        document.body.style.setProperty('--background', '');
       } else {
-        document.body.className = '';
-        document.body.style.backgroundImage = `url(${bg.value})`;
+        document.body.className = 'image';
+        document.body.style.setProperty('--background', `url(${bg.value})`);
+        // document.body.style.backgroundImage = `url(${bg.value})`;
       }
+      if(this.settings.blurBg)
+        document.body.className += ' blur';
     }
   },
   created() {
