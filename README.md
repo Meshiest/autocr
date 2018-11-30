@@ -71,10 +71,14 @@ There are a few features that do not necessitate downloading any anime!
       -w, --window             Pop up an electron window
       -h, --help               output usage information
 
-## Screenshots
+## Screenshots (Dashboard)
 
 <img src="https://i.imgur.com/qXXNTTL.jpg" width="512"/>
 <img src="https://i.imgur.com/32i8kIW.jpg" width="512"/>
+
+## Custom Dashboard Backgrounds
+
+Backgrounds can be placed in the `project-root/custom_backgrounds` folder or in a folder titled `custom_backgrounds` inside the `output_dir` as listed under the settings section in your `config.yml`. Names will automatically be transformed in the dashboard settings menu from `kebab-case.jpg` or `snake_case.jpg` to `Kebab Case` and `Snake Case` respectively.
 
 ## Notes
 

@@ -2,13 +2,19 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const _ = require('lodash');
-
+const fs = require('fs');
 const proc = require('child_process');
 
-const { config } = require('./config.js');
+const { config, backgrounds } = require('./config.js');
 const { fetch } = require('./animeutils.js');
 
 app.use(express.static(__dirname + '/server'));
+app.use('/bg', express.static(__dirname + '/../custom_backgrounds'));
+
+if(config && fs.existsSync(config.settings.output_dir + '/custom_backgrounds')) {
+  console.log('using', config.settings.output_dir + '/custom_backgrounds');
+  app.use('/bg', express.static(config.settings.output_dir + '/custom_backgrounds'));
+}
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/server/index.html');
@@ -16,6 +22,10 @@ app.get('/', (req, res) => {
 
 app.get('/api/airing', async (req, res) => {
   res.json(await fetch.airing());
+});
+
+app.get('/api/backgrounds', async (req, res) => {
+  res.json(backgrounds());
 });
 
 app.get('/api/todo', async (req, res) => {

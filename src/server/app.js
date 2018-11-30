@@ -128,73 +128,6 @@ Vue.component('cal-day', {
   `,
 });
 
-const app = new Vue({
-  el: '#app',
-  methods: {
-    updateFilters() {
-      localStorage.autocrFilters = JSON.stringify(this.filters);
-    },
-    updateSettings() {
-      this.updateBG();
-      localStorage.autocrSettings = JSON.stringify(this.settings);
-    },
-    updateBG(bg) {
-      bg = bg || this.settings.background || {type: 'class', value: 'default-bg'};
-      this.settings.background = bg;
-      if(bg.type === 'class') {
-        document.body.className = bg.value;
-        document.body.style.setProperty('--background', '');
-      } else {
-        document.body.className = 'image';
-        document.body.style.setProperty('--background', `url(${bg.value})`);
-        // document.body.style.backgroundImage = `url(${bg.value})`;
-      }
-      if(this.settings.blurBg)
-        document.body.className += ' blur';
-    }
-  },
-  created() {
-    this.updateBG();
-  },
-  computed: {
-    sortedTodo() {
-      let arr = [];
-      for(let i in this.todo) {
-        arr.push(this.todo[i]);
-      }
-      return arr.sort((a, b) => b.count - a.count);
-    }
-  },
-  data: {
-    loading: true,
-    filters: localStorage.autocrFilters ? JSON.parse(localStorage.autocrFilters) : {
-      showAll: false,
-      crunchy: false,
-      amazon: false,
-    },
-    settings: localStorage.autocrSettings ? JSON.parse(localStorage.autocrSettings) : {
-      english: false,
-      hideLinks: false,
-    },
-    todo: {},
-    calendar: {
-      monday: [],
-      tuesday: [],
-      wednesday: [],
-      thursday: [],
-      friday: [],
-    },
-    backgrounds: [
-      {text: 'Default Gradient', value: {type: 'class', value: 'default-bg'}},
-      {text: 'Light Gray', value: {type: 'class', value: 'grey-bg'}},
-      {text: 'Rainy Sky', value: {type: 'image', value: 'img/rainy-sky.jpg'}},
-      {text: 'Roof Fence', value: {type: 'image', value: 'img/roof-fence.jpg'}},
-      {text: 'Sunset Coast', value: {type: 'image', value: 'img/sunset-coast.jpg'}},
-      {text: 'Seaside Pool', value: {type: 'image', value: 'img/seaside-pool.jpg'}},
-    ],
-  },
-})
-
 const isElectron = typeof require === 'function';
 
 async function airing() {
@@ -204,6 +137,36 @@ async function airing() {
     const resp = await fetch('/api/airing');
     return await resp.json();
   }
+}
+
+function transformStr(str) {
+  return str
+    .replace(/\.\w+$/, '')
+    .replace(/\.\w+$/, '')
+    .replace(/(^|-_)(\w)/g, c => c.toUpperCase())
+    .replace(/-_/g, ' ');
+}
+
+async function backgroundList() {
+  let bgs = [];
+
+  if(isElectron) {
+    const { config, backgrounds } = require('../config.js');
+    const fs = require('fs');
+    bgs = backgrounds(true).map(bg => ({
+      text: transformStr(bg),
+      value: {type: 'image', value: bg},
+    }));
+
+  } else {
+    const resp = await fetch('/api/backgrounds');
+    bgs = (await resp.json()).map(bg => ({
+      text: transformStr(bg),
+      value: {type: 'image', value: `bg/${bg}`},
+    }));
+  }
+
+  return bgs;
 }
 
 async function todo() {
@@ -252,3 +215,73 @@ function clickLink(event) {
   let link = event.target.href;
   require("electron").shell.openExternal(link);
 }
+
+const app = new Vue({
+  el: '#app',
+  methods: {
+    updateFilters() {
+      localStorage.autocrFilters = JSON.stringify(this.filters);
+    },
+    updateSettings() {
+      this.updateBG();
+      localStorage.autocrSettings = JSON.stringify(this.settings);
+    },
+    updateBG(bg) {
+      bg = bg || this.settings.background || {type: 'class', value: 'default-bg'};
+      this.settings.background = bg;
+      if(bg.type === 'class') {
+        document.body.className = bg.value;
+        document.body.style.setProperty('--background', '');
+      } else {
+        document.body.className = 'image';
+        document.body.style.setProperty('--background', `url(${bg.value})`);
+        // document.body.style.backgroundImage = `url(${bg.value})`;
+      }
+      if(this.settings.blurBg)
+        document.body.className += ' blur';
+    }
+  },
+  created() {
+    this.updateBG();
+    backgroundList().then(bgs => {
+      this.backgrounds = this.backgrounds.concat(bgs);
+    });
+  },
+  computed: {
+    sortedTodo() {
+      let arr = [];
+      for(let i in this.todo) {
+        arr.push(this.todo[i]);
+      }
+      return arr.sort((a, b) => b.count - a.count);
+    }
+  },
+  data: {
+    loading: true,
+    filters: localStorage.autocrFilters ? JSON.parse(localStorage.autocrFilters) : {
+      showAll: false,
+      crunchy: false,
+      amazon: false,
+    },
+    settings: localStorage.autocrSettings ? JSON.parse(localStorage.autocrSettings) : {
+      english: false,
+      hideLinks: false,
+    },
+    todo: {},
+    calendar: {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+    },
+    backgrounds: [
+      {text: 'Default Gradient', value: {type: 'class', value: 'default-bg'}},
+      {text: 'Light Gray', value: {type: 'class', value: 'grey-bg'}},
+      {text: 'Rainy Sky', value: {type: 'image', value: 'img/rainy-sky.jpg'}},
+      {text: 'Roof Fence', value: {type: 'image', value: 'img/roof-fence.jpg'}},
+      {text: 'Sunset Coast', value: {type: 'image', value: 'img/sunset-coast.jpg'}},
+      {text: 'Seaside Pool', value: {type: 'image', value: 'img/seaside-pool.jpg'}},
+    ],
+  },
+});
