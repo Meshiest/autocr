@@ -134,12 +134,12 @@ body.grey-bg::before {
 }
 
 .calendar-day {
-  margin: 0 2px;
   width: 100px;
 }
 
 .calendar-shows {
-  margin-top: 32px;
+  margin-top: 34px;
+  padding: 0 2px;
 }
 
 .calendar-day header {
@@ -369,19 +369,20 @@ body.grey-bg::before {
   object-position: 50% 100%;
 }
 
-/*@media screen and (max-width: 650px) {
-  .calendar-show .episode, .calendar-show .links {
+@media screen and (max-width: 739px) {
+  .calendar:not(.rotated)::before {
     display: none;
   }
 
-  .calendar-day header {
-    font-size: 10px;
+  .calendar:not(.rotated) .calendar-day header {
+    background-color: rgba(0, 0, 0, 0.5);
+    position: relative;
   }
 
-  .time {
-    font-size: 10px;
+  .calendar:not(.rotated) .calendar-day .calendar-shows {
+    margin-top: 0;
   }
-}*/
+}
 
 .tools-container {
   align-items: flex-end;
