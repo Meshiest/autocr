@@ -104,7 +104,7 @@ Vue.component('cal-day', {
               todo[show.id].begin + '-' + todo[show.id].end
             }}
           </div>
-          <div class="links" v-if="!settings.hideLinks">
+          <div :class="['links', {hidden: settings.hideLinks}]">
             <a v-for="link in show.external_links"
               v-if="link.site === 'Crunchyroll'"
               class="crunchy"

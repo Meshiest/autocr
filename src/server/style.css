@@ -238,6 +238,19 @@ body.grey-bg::before {
   top: 0;
 }
 
+.calendar-show .links.hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.5s ease;
+}
+
+.calendar-show:hover .links.hidden {
+  pointer-events: initial;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .rotated.calendar {
   flex-direction: column;
   padding-left: 0;
@@ -307,7 +320,7 @@ body.grey-bg::before {
   pointer-events: none;
   position: absolute;
   transform: translate(-50%, calc(100% + 5px));
-  z-index: 100;
+  z-index: 101;
 }
 
 .links a:hover::after {
