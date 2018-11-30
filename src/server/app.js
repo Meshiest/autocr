@@ -184,6 +184,14 @@ const app = new Vue({
       thursday: [],
       friday: [],
     },
+    backgrounds: [
+      {text: 'Default Gradient', value: {type: 'class', value: 'default-bg'}},
+      {text: 'Light Gray', value: {type: 'class', value: 'grey-bg'}},
+      {text: 'Rainy Sky', value: {type: 'image', value: 'img/rainy-sky.jpg'}},
+      {text: 'Roof Fence', value: {type: 'image', value: 'img/roof-fence.jpg'}},
+      {text: 'Sunset Coast', value: {type: 'image', value: 'img/sunset-coast.jpg'}},
+      {text: 'Seaside Pool', value: {type: 'image', value: 'img/seaside-pool.jpg'}},
+    ],
   },
 })
 
