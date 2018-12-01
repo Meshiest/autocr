@@ -92,7 +92,7 @@ Vue.component('cal-day', {
             {{ settings.english ? show.title_english : show.title_romaji }}
           </div>
           <div class="episode" v-if="show.airing.next_episode">
-            {{ show.airing.next_episode }}/{{ show.duration || '?' }}
+            {{ show.airing.next_episode }}/{{ show.total_episodes || '?' }}
           </div>
           <div class="time">
             <clock :time="show.airing.time"></clock>
