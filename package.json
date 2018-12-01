@@ -8,15 +8,15 @@
   "description": "An automatic anime downloader given a MyAnimeList and a Crunchyroll account",
   "main": "main.js",
   "scripts": {
-    "start": "node ./bin/autocr",
-    "dash": "electron ./src/window.js"
+    "start": "node bin/autocr",
+    "dash": "electron src/window.js"
   },
   "author": "Meshiest",
   "engines": {
     "node": ">=8.1"
   },
   "bin": {
-    "autocr": "./bin/autocr"
+    "autocr": "bin/autocr"
   },
   "license": "MIT",
   "dependencies": {

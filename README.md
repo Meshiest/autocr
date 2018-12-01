@@ -22,14 +22,31 @@ There are a few features that do not necessitate downloading any anime!
 * [NodeJS](https://nodejs.org/) >= 8.1
 * [NPM](https://www.npmjs.org/) >= 5.8
 
-## Installation (Until I ever put this on npm)
+## Installation (User)
 
-1. `git clone http://github.com/meshiest/autocr` - Clone the repo
+1. `npm i -g git+https://github.com/Meshiest/autocr` - Install autocr
+2. `autocr init` - Create default config file in current directory
+
+Update with `npm i -g git+https://github.com/Meshiest/autocr`
+
+## Installation (Developer)
+
+1. `git clone http://github.com/Meshiest/autocr` - Clone the repo
 2. `cd autocr` - Enter the directory
 3. `npm install` - Install node dependencies
 4. `npm link` - Add this library to your node_modules
 5. `npm install $(pwd)` - Update your PATH to have `autocr`
 6. `autocr init` - Create default config file in current directory
+
+Update with `git pull` in the repo folder
+
+## Standalone Dashboard (Windows)
+
+Create a shortcut with:
+
+* Target: `C:/path/to/autocr/node_modules/electron/dist/electron.exe C:/path/to/autocr/src/window.js`
+* Start in: `C:/path/to/autocr/src`
+* Icon: Navigate to `autocr/src/server/favicon.ico`
 
 ## Commands
   
@@ -83,5 +100,5 @@ Backgrounds can be placed in the `project-root/custom_backgrounds` folder or in 
 ## Notes
 
 * `autocr pull` will sometimes add shows that are not on crunchyroll, you will need to browse your config.yml to ensure you only have shows you want
-* `autocr get` will download everything AFTER the currently watched episode. If you want to download the entire show, use `crunchy` until some form of `autocr all` is developed
+* `autocr get` will download everything AFTER the currently watched episode. If you want to download the entire show, use `crunchy` or `autocr search -d "show name"`
 * `autocr search` requires quotes when searching for multi word titles (`autocr search "my github academia"`)
