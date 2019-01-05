@@ -48,19 +48,37 @@
       </tool>
     </div>
     <div class="tools-container right" v-if="!loading">
+      <tool icon="clock" title="Plan to Watch">
+        <div v-for="show in ptw" :class="['todo-list-item', {done: !show.airing}]">
+          <span class="title">
+            {{ show.title }}
+          </span>
+          <span class="interval">
+            <span v-if="show.count">
+              {{
+                show.end - show.begin <= 0 ?
+                show.begin :
+                show.begin + '-' + show.end
+              }}
+            </span>
+            <i class="fas fa-question" v-if="!show.count"></i>
+          </span>
+        </div>
+      </tool>
       <tool icon="clipboard-list" title="Todo">
         <div v-for="show in sortedTodo" :class="['todo-list-item', {done: show.count == 0}]">
           <span class="title">
             {{ show.title }}
           </span>
           <span class="interval">
-            {{
-              show.count > 0 ? (
+            <span v-if="show.count">
+              {{
                 show.end - show.begin <= 0 ?
                 show.begin :
                 show.begin + '-' + show.end
-              ) : '&check;'
-            }}
+              }}
+            </span>
+            <i class="fas fa-check" v-if="!show.count"></i>
           </span>
         </div>
       </tool>

@@ -7,13 +7,13 @@ const _ = require('lodash');
 const CR_URL_REGEX = /https?:\/\/www.crunchyroll\.com\/(.+?)\//;
 
 // Grabs a user's list in JSON form
-function fetchList(name) {
+function fetchList(name, ptw=false) {
   return new Promise((resolve, reject) => {
-    request(`https://myanimelist.net/animelist/${name}?status=1`, (err, resp, body) => {
+    request(`https://myanimelist.net/animelist/${name}?status=${ptw ? 6 : 1}`, (err, resp, body) => {
       if(err)
         return reject(err);
       const $ = cheerio.load(body);
-      resolve(JSON.parse($('.list-block table').attr('data-items')));
+      resolve(JSON.parse($('.list-block table').attr('data-items') || '[]'));
     });
   });
 }
@@ -197,11 +197,12 @@ function anichart(url) {
 // Get a list of shows the user needs to catch up with
 async function todo(options) {
   options = options || {};
+  options.ptw = options.ptw || false;
 
   if(!config)
     return [];
 
-  const malPromise = fetchList(config.settings.myanimelist.username);
+  const malPromise = fetchList(config.settings.myanimelist.username, options.ptw);
   const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
 
   return (await malPromise).map(show => {

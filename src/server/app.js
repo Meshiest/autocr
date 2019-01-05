@@ -169,14 +169,14 @@ async function backgroundList() {
   return bgs;
 }
 
-async function todo() {
+async function todo(ptw=false) {
   if(isElectron) {
     if(!require('../config.js').config)
       return [];
 
-    return await require('../animeutils.js').fetch.todo();
+    return await require('../animeutils.js').fetch.todo({ptw});
   } else {
-    const resp = await fetch('/api/todo');
+    const resp = await fetch(ptw ? '/api/ptw' : '/api/todo');
     return await resp.json();
   }
 }
@@ -200,7 +200,21 @@ function update() {
       todo[show.ani_id] = show;
 
     app.todo = todo;
+
   });
+  todo(true).then(blob => {
+    let ptw = [];
+
+    for(let show of blob)
+      if(show.begin)
+        ptw.push(show);
+
+    ptw.sort((a, b) => b.count - a.count);
+    ptw.sort((a, b) => (b.airing ? 1 : 0) - (a.airing ? 1 : 0));
+
+    app.ptw = ptw;
+  });
+
 }
 
 update();
@@ -254,7 +268,7 @@ const app = new Vue({
         arr.push(this.todo[i]);
       }
       return arr.sort((a, b) => b.count - a.count);
-    }
+    },
   },
   data: {
     loading: true,
@@ -268,6 +282,7 @@ const app = new Vue({
       hideLinks: false,
     },
     todo: {},
+    ptw: [],
     calendar: {
       monday: [],
       tuesday: [],

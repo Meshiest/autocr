@@ -35,6 +35,13 @@ app.get('/api/todo', async (req, res) => {
   res.json(await fetch.todo());
 });
 
+app.get('/api/ptw', async (req, res) => {
+  if(!config)
+    return res.status(422).json({message: 'Config.yml Needed. Restart app when config is updated.'});
+
+  res.json(await fetch.todo({ptw: true}));
+});
+
 function startServer() {
   const port = config && config.settings.server_port || 3000;
   console.log('Starting server on port', port);
