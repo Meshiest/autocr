@@ -66,7 +66,7 @@ Vue.component('dropdown', {
 });
 
 Vue.component('cal-day', {
-  props: ['day', 'shows', 'todo', 'filters', 'settings'],
+  props: ['day', 'shows', 'todo', 'filters', 'settings', 'ptw'],
   methods: {
     hasLink(show, type) {
       return show.external_links.filter(link => link.site == type).length > 0;
@@ -98,11 +98,15 @@ Vue.component('cal-day', {
             <clock :time="show.airing.time"></clock>
           </div>
           <div class="todo" v-if="todo[show.id] && todo[show.id].count">
+            <i class="fas fa-clock" v-if="ptw.todo[show.id]"></i>
             {{
               todo[show.id].end - todo[show.id].begin <= 0 ?
               todo[show.id].begin :
               todo[show.id].begin + '-' + todo[show.id].end
             }}
+          </div>
+          <div class="todo" v-if="ptw.todo[show.id] && !(todo[show.id] && todo[show.id].count)">
+            <i class="fas fa-clock"></i>
           </div>
           <div :class="['links', {hidden: settings.hideLinks}]">
             <a v-for="link in show.external_links"
@@ -204,10 +208,14 @@ function update() {
   });
   todo(true).then(blob => {
     let ptw = [];
+    ptw.todo = {};
 
-    for(let show of blob)
+    for(let show of blob) {      
       if(show.begin)
         ptw.push(show);
+      if(show.ani_id)
+        ptw.todo[show.ani_id] = show;
+    }
 
     ptw.sort((a, b) => b.count - a.count);
     ptw.sort((a, b) => (b.airing ? 1 : 0) - (a.airing ? 1 : 0));
@@ -282,7 +290,7 @@ const app = new Vue({
       hideLinks: false,
     },
     todo: {},
-    ptw: [],
+    ptw: {length: 0, todo: {}},
     calendar: {
       monday: [],
       tuesday: [],

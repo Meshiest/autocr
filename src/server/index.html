@@ -14,7 +14,7 @@
     </div>
     <div :class="['calendar', { rotated: settings.rotated }]" v-if="!loading" v-cloak>
       <cal-day v-for="shows, day in calendar"
-        v-bind="{key: day, shows, todo, day, filters, settings}">
+        v-bind="{key: day, shows, todo, ptw, day, filters, settings}">
       </cal-day>
     </div>
     <div class="tools-container" v-if="!loading">

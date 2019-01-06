@@ -7,9 +7,9 @@ const _ = require('lodash');
 const CR_URL_REGEX = /https?:\/\/www.crunchyroll\.com\/(.+?)\//;
 
 // Grabs a user's list in JSON form
-function fetchList(name, ptw=false) {
+function fetchList(name, status=1) {
   return new Promise((resolve, reject) => {
-    request(`https://myanimelist.net/animelist/${name}?status=${ptw ? 6 : 1}`, (err, resp, body) => {
+    request(`https://myanimelist.net/animelist/${name}?status=${status}`, (err, resp, body) => {
       if(err)
         return reject(err);
       const $ = cheerio.load(body);
@@ -202,7 +202,7 @@ async function todo(options) {
   if(!config)
     return [];
 
-  const malPromise = fetchList(config.settings.myanimelist.username, options.ptw);
+  const malPromise = fetchList(config.settings.myanimelist.username, 6);
   const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
 
   return (await malPromise).map(show => {
@@ -242,9 +242,10 @@ async function todo(options) {
 }
 
 async function airing() {
-  const malPromise = config && fetchList(config.settings.myanimelist.username);
+  const malPromise = config && Promise.all([fetchList(config.settings.myanimelist.username, 2), fetchList(config.settings.myanimelist.username, 6)]);
   const airing = await anichart('http://anichart.net/api/airing');
-  const mal = malPromise ? await malPromise : [];
+  const mal = (malPromise ? [].concat(...await malPromise) : []).filter(s => s.status !== 4 && s.status !== 2);
+  const mal_obj = mal.reduce((obj, a) => ({...obj, [a.anime_id]: a}), {});
 
   _.each(airing, shows => {
     shows.map(show => {
@@ -252,7 +253,7 @@ async function airing() {
       const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
       show.crLink = crLink;
 
-      show.onMyMal = malId && _.find(mal, {anime_id: parseInt(malId[0])});
+      show.onMyMal = mal_obj[malId];
       show.onMyConfig = config && config.shows && crLink && _.find(config.shows, s => s.crunchyroll.match(crLink.url));
     });
   });
