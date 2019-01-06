@@ -202,7 +202,7 @@ async function todo(options) {
   if(!config)
     return [];
 
-  const malPromise = fetchList(config.settings.myanimelist.username, 6);
+  const malPromise = fetchList(config.settings.myanimelist.username, 1);
   const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
 
   return (await malPromise).map(show => {
