@@ -202,7 +202,7 @@ async function todo(options) {
   if(!config)
     return [];
 
-  const malPromise = fetchList(config.settings.myanimelist.username, 1);
+  const malPromise = fetchList(config.settings.myanimelist.username, options.ptw ? 6 : 1);
   const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
 
   return (await malPromise).map(show => {
@@ -220,7 +220,7 @@ async function todo(options) {
     if(show.anime_airing_status === 1) {
       const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
       return {
-        count: (meta.airing.next_episode - 1) - show.num_watched_episodes,
+        count: Math.max((meta.airing.next_episode - 1) - show.num_watched_episodes, 0),
         begin: show.num_watched_episodes + 1,
         end: (meta.airing.next_episode - 1),
         ani_id: meta.id,
@@ -242,7 +242,7 @@ async function todo(options) {
 }
 
 async function airing() {
-  const malPromise = config && Promise.all([fetchList(config.settings.myanimelist.username, 2), fetchList(config.settings.myanimelist.username, 6)]);
+  const malPromise = config && Promise.all([fetchList(config.settings.myanimelist.username, 1), fetchList(config.settings.myanimelist.username, 6)]);
   const airing = await anichart('http://anichart.net/api/airing');
   const mal = (malPromise ? [].concat(...await malPromise) : []).filter(s => s.status !== 4 && s.status !== 2);
   const mal_obj = mal.reduce((obj, a) => ({...obj, [a.anime_id]: a}), {});

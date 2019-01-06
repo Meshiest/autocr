@@ -271,11 +271,9 @@ const app = new Vue({
   },
   computed: {
     sortedTodo() {
-      let arr = [];
-      for(let i in this.todo) {
-        arr.push(this.todo[i]);
-      }
-      return arr.sort((a, b) => b.count - a.count);
+      return Object.values(this.todo)
+        .sort((a, b) => (b.airing ? 1 : 0) - (a.airing ? 1 : 0))
+        .sort((a, b) => b.count - a.count);
     },
   },
   data: {
