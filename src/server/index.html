@@ -28,6 +28,10 @@
           @input="updateSettings"
           label="English Titles">
         </toggle>
+        <toggle v-model="settings.showPTW"
+          @input="updateSettings"
+          label="Plan to Watch">
+        </toggle>
         <toggle v-model="settings.hideLinks"
           @input="updateSettings"
           label="Links on Hover">
@@ -48,7 +52,7 @@
       </tool>
     </div>
     <div class="tools-container right" v-if="!loading">
-      <tool icon="clock" title="Plan to Watch">
+      <tool icon="clock" title="Plan to Watch" v-if="settings.showPTW">
         <div v-for="show in ptw" :class="['todo-list-item', {done: !show.airing}]">
           <span class="title">
             {{ show.title }}

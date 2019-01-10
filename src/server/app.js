@@ -80,7 +80,8 @@ Vue.component('cal-day', {
       <section class="calendar-shows">
         <article v-for="show in shows"
           class="calendar-show"
-          v-if="(filters.showAll || show.onMyMal) && (
+          v-if="(filters.showAll || show.onMyMal) &&
+            (show.onMyMal && show.onMyMal.status == 6 ? settings.showPTW : true) && (
             filters.crunchy && hasLink(show, 'Crunchyroll') ||
             filters.amazon && hasLink(show, 'Amazon') ||
             !filters.crunchy && !filters.amazon
@@ -98,14 +99,14 @@ Vue.component('cal-day', {
             <clock :time="show.airing.time"></clock>
           </div>
           <div class="todo" v-if="todo[show.id] && todo[show.id].count">
-            <i class="fas fa-clock" v-if="ptw.todo[show.id]"></i>
+            <i class="fas fa-clock" v-if="settings.showPTW && ptw.todo[show.id]"></i>
             {{
               todo[show.id].end - todo[show.id].begin <= 0 ?
               todo[show.id].begin :
               todo[show.id].begin + '-' + todo[show.id].end
             }}
           </div>
-          <div class="todo" v-if="ptw.todo[show.id] && !(todo[show.id] && todo[show.id].count)">
+          <div class="todo" v-if="settings.showPTW && ptw.todo[show.id] && !(todo[show.id] && todo[show.id].count)">
             <i class="fas fa-clock"></i>
           </div>
           <div :class="['links', {hidden: settings.hideLinks}]">
@@ -286,6 +287,7 @@ const app = new Vue({
     settings: localStorage.autocrSettings ? JSON.parse(localStorage.autocrSettings) : {
       english: false,
       hideLinks: false,
+      showPTW: false,
     },
     todo: {},
     ptw: {length: 0, todo: {}},
