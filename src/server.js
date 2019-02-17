@@ -5,8 +5,8 @@ const _ = require('lodash');
 const fs = require('fs');
 const proc = require('child_process');
 
-const { config, backgrounds } = require('./config.js');
-const { fetch } = require('./animeutils.js');
+const { config, backgrounds } = require('./config');
+const { fetch } = require('./animeutils');
 
 app.use(express.static(__dirname + '/server'));
 app.use('/bg', express.static(__dirname + '/../custom_backgrounds'));

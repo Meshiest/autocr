@@ -69,7 +69,7 @@ Vue.component('cal-day', {
   props: ['day', 'shows', 'todo', 'filters', 'settings', 'ptw'],
   methods: {
     hasLink(show, type) {
-      return show.external_links.filter(link => link.site == type).length > 0;
+      return show.meta.links.filter(link => link.site == type).length > 0;
     }
   },
   template: `
@@ -88,15 +88,15 @@ Vue.component('cal-day', {
           )"
           :my-list="!!show.onMyMal"
           :key="show.id">
-          <img :src="show.image">
+          <img :src="show.meta.image.medium" :style="'background: ' + show.meta.image.color">
           <div class="title">
-            {{ settings.english ? show.title_english : show.title_romaji }}
+            {{ settings.english && show.meta.title.english || show.meta.title.romaji }}
           </div>
-          <div class="episode" v-if="show.airing.next_episode">
-            {{ show.airing.next_episode }}/{{ show.total_episodes || '?' }}
+          <div class="episode" v-if="show.next">
+            {{ show.next }}/{{ show.meta.total || '?' }}
           </div>
           <div class="time">
-            <clock :time="show.airing.time"></clock>
+            <clock :time="show.airing"></clock>
           </div>
           <div class="todo" v-if="todo[show.id] && todo[show.id].count">
             <i class="fas fa-clock" v-if="settings.showPTW && ptw.todo[show.id]"></i>
@@ -110,20 +110,20 @@ Vue.component('cal-day', {
             <i class="fas fa-clock"></i>
           </div>
           <div :class="['links', {hidden: settings.hideLinks}]">
-            <a v-for="link in show.external_links"
+            <a v-for="link in show.meta.links"
               v-if="link.site === 'Crunchyroll'"
               class="crunchy"
               target="_blank"
               onclick="clickLink(event)"
               :href="link.url"></a>
-            <a v-for="link in show.external_links"
+            <a v-for="link in show.meta.links"
               v-if="link.site === 'Amazon'"
               target="_blank"
               class="amazon"
               onclick="clickLink(event)"
               :href="link.url"></a>
             <a class="mal"
-              :href="show.mal_link"
+              :href="'https://myanimelist.net/anime/' + show.meta.mal"
               onclick="clickLink(event)"
               target="_blank"></a>
           </div>
@@ -137,7 +137,7 @@ const isElectron = typeof require === 'function';
 
 async function airing() {
   if(isElectron) {
-    return await require('../animeutils.js').fetch.airing();
+    return await require('../animeutils').fetch.airing();
   } else {
     const resp = await fetch('/api/airing');
     return await resp.json();
@@ -156,7 +156,7 @@ async function backgroundList() {
   let bgs = [];
 
   if(isElectron) {
-    const { config, backgrounds } = require('../config.js');
+    const { config, backgrounds } = require('../config');
     const fs = require('fs');
     bgs = backgrounds(true).map(bg => ({
       text: transformStr(bg),

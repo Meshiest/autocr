@@ -6,11 +6,11 @@ const path = require('path');
 const dateFormat = require('dateformat');
 const proc = require('child_process');
 
-const { config, writeConfig, BLANK_CONFIG } = require('./src/config.js');
-const { mkdir, log, setQuiet, countdown } = require('./src/utils.js');
-const { fetch, search, guessFromMAL, CR_URL_REGEX } = require('./src/animeutils.js');
-const { runCrunchy, watchFeed, TEMP_BATCH_PATH } = require('./src/crunchy.js');
-const { startServer, startApp } = require('./src/server.js');
+const { config, writeConfig, BLANK_CONFIG } = require('./src/config');
+const { mkdir, log, setQuiet, countdown } = require('./src/utils');
+const { fetch, search, guessFromMAL, CR_URL_REGEX } = require('./src/animeutils');
+const { runCrunchy, watchFeed, TEMP_BATCH_PATH } = require('./src/crunchy');
+const { startServer, startApp } = require('./src/server');
 
 if(config && !config.agree_to_license) {
   console.error('Before using this software you must read and agree to the LICENSE and set the agree_to_license property to true in the config.yml file');
@@ -154,7 +154,7 @@ program
 program
   .command('airing')
   .alias('a')
-  .description('View currently airing shows from AniChart')
+  .description('View currently airing shows from AniList')
   .option('-a, --all', 'Show all series information')
   .option('-d, --description', 'Show series descriptions')
   .option('-e, --english', 'Show series english titles')
@@ -176,10 +176,10 @@ program
 
     const hasFlag = flags.includes('all') ? () => true : flags.includes.bind(flags);
 
-    log('Fetching AniChart...');
+    log('Fetching AniList...');
     animeListOnly && log('Fetching MyAnimeList...');
     const malPromise = animeListOnly && fetch.mal(config.settings.myanimelist.username);
-    const airing = await fetch.anichart('http://anichart.net/api/airing');
+    const airing = await fetch.calendar();
     const mal = malPromise ? await malPromise : [];
 
     // Only display shows with crunchyroll links
@@ -187,11 +187,10 @@ program
       shows.filter(show => {
         
         if(animeListOnly) {
-          const malId = show.mal_link.match(/\d+$/);
-          return malId && _.find(mal, {anime_id: parseInt(malId[0])});
+          return show.meta.mal && _.find(mal, {anime_id: parseInt(show.meta.mal)});
         }
 
-        const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
+        const crLink = _.find(show.meta.links, {site: 'Crunchyroll'});
         if(listOnly && crLink) {
           return _.find((config.shows || []), s => s.crunchyroll.match(crLink.url));
         }
@@ -208,26 +207,26 @@ program
         log(`  Nothing ${day}!`);
 
       _.sortBy(filtered[day], 'airing.time').forEach(show => {
-        const time = dateFormat(new Date(show.airing.time * 1000), 'hh:MM TT');
+        const time = dateFormat(new Date(show.airing * 1000), 'hh:MM TT');
 
         if(minimal)
-          return log(`  ${time}${showTime ? ` [${countdown(show.airing.countdown)}]` : ''} - ${show.title_romaji}${showTime ? ` - ${show.airing.next_episode}/${show.total_episodes || '?'}`: ''}`);
+          return log(`  ${time}${showTime ? ` [${countdown(show.countdown)}]` : ''} - ${show.meta.title.romaji}${showTime ? ` - ${show.next}/${show.meta.total || '?'}`: ''}`);
 
-        const crLink = (_.find(show.external_links, {site: 'Crunchyroll'}) || {}).url;
+        const crLink = (_.find(show.meta.links, {site: 'Crunchyroll'}) || {}).url;
 
-        log(`  ${time}${showTime ? ` [${countdown(show.airing.countdown)}]` : ''} - ${show.title_romaji}${showTime ? ` - ${show.airing.next_episode}/${show.total_episodes || '?'}`: ''} ${
+        log(`  ${time}${showTime ? ` [${countdown(show.countdown)}]` : ''} - ${show.meta.title.romaji}${showTime ? ` - ${show.next}/${show.meta.total || '?'}`: ''} ${
         hasFlag('english') ? `
-    Title: ${show.title_english}` : ''}
-      MAL: ${show.mal_link}
+    Title: ${show.meta.title.english}` : ''}
+      MAL: https://myanimelist.net/anime/${show.meta.mal}
        CR: ${crLink || 'n/a'}${
         hasFlag('description') ? `
-     Desc: ${show.description.replace(/<br>|(\n+\(Source: .+\))/g, '')}`
+     Desc: ${show.meta.description.replace(/<br>|(\n+\(Source: .+\))/g, '')}`
    : ''}${
         hasFlag('rating') ? `
-    Score: ${Math.floor(show.average_score/10)}/10`
+    Score: ${Math.floor(show.meta.rating/10)}/10`
    : ''}${
         hasFlag('genre') ? `
-    Genre: ${show.genres.filter(g => g).join(', ')}`
+    Genre: ${show.meta.genres.filter(g => g).join(', ')}`
    : ''}\n`);
       });
       log('\n');
@@ -329,7 +328,7 @@ program
     if(!config)
       return log('config.yml does not exist! run autocr init to create one');
 
-    log('Fetching AniChart and MyAnimeList...\n');
+    log('Fetching AniList and MyAnimeList...\n');
 
     let total = 0;
     (await fetch.todo())

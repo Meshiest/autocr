@@ -1,7 +1,8 @@
 const request = require('request');
 const cheerio = require('cheerio');
 const { parseString: parseXML } = require('xml2js');
-const { config } = require('./config.js');
+const { config } = require('./config');
+const anilist = require('./anilist');
 const _ = require('lodash');
 
 const CR_URL_REGEX = /https?:\/\/www.crunchyroll\.com\/(.+?)\//;
@@ -159,41 +160,6 @@ function guessFromMAL(mal_item) {
   });
 }
 
-let anichartHeaders;
-// Cache headers needed for anichart api requests
-function getACHeaders() {
-  return new Promise((resolve, reject) => {
-    if(anichartHeaders) 
-      resolve(anichartHeaders);
-    else {      
-      request('http://anichart.net', (err, req, body) => {
-        if(err)
-          reject(err);
-        else
-          resolve(anichartHeaders = {
-            'X-CSRF-TOKEN': req.headers['set-cookie'][0].match(/XSRF-TOKEN=(.+?);/)[1],
-            Cookie: req.headers['set-cookie'].map(str => str.match(/^(.+?);/)[1]).join(';')
-          });
-      });
-    }
-  });
-}
-
-// Grab a free api token and run an api command
-function anichart(url) {
-  return new Promise(async (resolve, reject) => {
-    request({
-      url,
-      headers: await getACHeaders(),
-    }, (err, req, body) => {
-      if(err)
-        reject(err);
-      else
-        resolve(JSON.parse(body))
-    });
-  });
-}
-
 // Get a list of shows the user needs to catch up with
 async function todo(options) {
   options = options || {};
@@ -203,7 +169,7 @@ async function todo(options) {
     return [];
 
   const malPromise = fetchList(config.settings.myanimelist.username, options.ptw ? 6 : 1);
-  const airing = _.flatten(_.values(await anichart('http://anichart.net/api/airing')));
+  const airing = await anilist.airing();
 
   return (await malPromise).map(show => {
     const base = {
@@ -218,12 +184,12 @@ async function todo(options) {
       base.image = show.anime_image_path;
 
     if(show.anime_airing_status === 1) {
-      const meta = _.find(airing, {mal_link: `http://myanimelist.net/anime/${show.anime_id}`}) || {airing: {next_episode: 0}};
+      const meta = _.find(airing, {meta: {mal: show.anime_id}}) || {next: 0};
       return {
-        count: Math.max((meta.airing.next_episode - 1) - show.num_watched_episodes, 0),
+        count: Math.max((meta.next - 1) - show.num_watched_episodes, 0),
         begin: show.num_watched_episodes + 1,
-        end: (meta.airing.next_episode - 1),
-        ani_id: meta.id,
+        end: (meta.next - 1),
+        ani_id: meta.meta.id,
         airing: true,
         ...base
       };
@@ -243,17 +209,16 @@ async function todo(options) {
 
 async function airing() {
   const malPromise = config && Promise.all([fetchList(config.settings.myanimelist.username, 1), fetchList(config.settings.myanimelist.username, 6)]);
-  const airing = await anichart('http://anichart.net/api/airing');
+  const airing = await anilist.calendar();
   const mal = (malPromise ? [].concat(...await malPromise) : []).filter(s => s.status !== 4 && s.status !== 2);
   const mal_obj = mal.reduce((obj, a) => ({...obj, [a.anime_id]: a}), {});
 
   _.each(airing, shows => {
     shows.map(show => {
-      const malId = show.mal_link.match(/\d+$/);
-      const crLink = _.find(show.external_links, {site: 'Crunchyroll'});
+      const crLink = _.find(show.meta.links, {site: 'Crunchyroll'});
       show.crLink = crLink;
 
-      show.onMyMal = mal_obj[malId];
+      show.onMyMal = mal_obj[show.meta.mal];
       show.onMyConfig = config && config.shows && crLink && _.find(config.shows, s => s.crunchyroll.match(crLink.url));
     });
   });
@@ -268,7 +233,8 @@ module.exports = {
     feed: fetchFeed,
     because: fetchBecause,
     todo,
-    anichart,
+    anilist: anilist.airing,
+    calendar: anilist.calendar,
     airing,
   },
   search: {

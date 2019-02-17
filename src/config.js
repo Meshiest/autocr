@@ -2,7 +2,7 @@ const os = require('os');
 const yaml = require('js-yaml');
 const path = require('path');
 const fs = require('fs');
-const { mkdir, log } = require('./utils.js');
+const { mkdir, log } = require('./utils');
 const _ = require('lodash');
 
 const HOME_PATH = os.homedir() + '/.autocr.yml';

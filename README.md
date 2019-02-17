@@ -4,7 +4,7 @@ This handy dandy anime tool automates a number of things to provide the laziest 
 
 1. Interfaces with [Crunchy](https://github.com/Godzil/Crunchy) to download shows!
 2. Interfaces with [MyAnimeList](https://myanimelist.net/) to know what you're watching!
-3. Interfaces with [AniChart](http://anichart.net/) to browse airing shows!
+3. Interfaces with [AniList](http://anilist.co/) to browse airing shows!
 4. Interfaces with [because.moe](https://because.moe/) to search for crunchyroll links!
 
 The only features that do not require a config file are: `autocr search` and `autocr airing`
