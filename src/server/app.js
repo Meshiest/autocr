@@ -66,7 +66,7 @@ Vue.component('dropdown', {
 });
 
 Vue.component('cal-day', {
-  props: ['day', 'shows', 'todo', 'filters', 'settings', 'ptw'],
+  props: ['day', 'shows', 'f', 'filters', 'settings', 'ptw', 'todo'],
   methods: {
     hasLink(show, type) {
       return show.meta.links.filter(link => link.site == type).length > 0;
@@ -87,7 +87,7 @@ Vue.component('cal-day', {
             !filters.crunchy && !filters.amazon
           )"
           :my-list="!!show.onMyMal"
-          :key="show.id">
+          :key="show.meta.id">
           <img :src="show.meta.image.medium" :style="'background: ' + show.meta.image.color">
           <div class="title">
             {{ settings.english && show.meta.title.english || show.meta.title.romaji }}
@@ -98,15 +98,15 @@ Vue.component('cal-day', {
           <div class="time">
             <clock :time="show.airing"></clock>
           </div>
-          <div class="todo" v-if="todo[show.id] && todo[show.id].count">
-            <i class="fas fa-clock" v-if="settings.showPTW && ptw.todo[show.id]"></i>
+          <div class="todo" v-if="todo[show.meta.id] && todo[show.meta.id].count">
+            <i class="fas fa-clock" v-if="settings.showPTW && ptw.todo[show.meta.id]"></i>
             {{
-              todo[show.id].end - todo[show.id].begin <= 0 ?
-              todo[show.id].begin :
-              todo[show.id].begin + '-' + todo[show.id].end
+              todo[show.meta.id].end - todo[show.meta.id].begin <= 0 ?
+              todo[show.meta.id].begin :
+              todo[show.meta.id].begin + '-' + todo[show.meta.id].end
             }}
           </div>
-          <div class="todo" v-if="settings.showPTW && ptw.todo[show.id] && !(todo[show.id] && todo[show.id].count)">
+          <div class="todo" v-if="settings.showPTW && ptw.todo[show.meta.id] && !(todo[show.meta.id] && todo[show.meta.id].count)">
             <i class="fas fa-clock"></i>
           </div>
           <div :class="['links', {hidden: settings.hideLinks}]">
@@ -191,7 +191,7 @@ function update() {
     // Sort the shows by air time
     for(let day in blob) {
       blob[day] = blob[day].sort((a, b) =>
-        a.airing.time - b.airing.time);
+        a.airing - b.airing);
     }
 
     app.calendar = blob;
@@ -202,7 +202,8 @@ function update() {
     let todo = {};
 
     for(let show of blob)
-      todo[show.ani_id] = show;
+      if(show.ani_id)
+        todo[show.ani_id] = show;
 
     app.todo = todo;
 
