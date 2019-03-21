@@ -184,7 +184,7 @@ async function todo(options) {
       base.image = show.anime_image_path;
 
     if(show.anime_airing_status === 1) {
-      const meta = _.find(airing, {meta: {mal: show.anime_id}}) || {next: 0};
+      const meta = _.find(airing, {meta: {mal: show.anime_id}}) || {next: 0, meta: {id: -1}};
       return {
         count: Math.max((meta.next - 1) - show.num_watched_episodes, 0),
         begin: show.num_watched_episodes + 1,
