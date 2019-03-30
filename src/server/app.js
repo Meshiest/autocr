@@ -199,11 +199,13 @@ function update() {
   });
 
   todo().then(blob => {
-    let todo = {};
+    const todo = {};
 
     for(let show of blob)
       if(show.ani_id)
         todo[show.ani_id] = show;
+      else
+        todo['mal' + show.mal_id] = show;
 
     app.todo = todo;
 

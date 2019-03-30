@@ -32,6 +32,10 @@
           @input="updateSettings"
           label="Plan to Watch">
         </toggle>
+        <toggle v-model="settings.showFinished"
+          @input="updateSettings"
+          label="Show Finished">
+        </toggle>
         <toggle v-model="settings.hideLinks"
           @input="updateSettings"
           label="Links on Hover">
@@ -70,7 +74,9 @@
         </div>
       </tool>
       <tool icon="clipboard-list" title="Todo">
-        <div v-for="show in sortedTodo" :class="['todo-list-item', {done: show.count == 0}]">
+        <div v-for="show in sortedTodo"
+          :class="['todo-list-item', {done: show.count == 0}]"
+          v-if="show.ani_id || settings.showFinished">
           <span class="title">
             {{ show.title }}
           </span>
