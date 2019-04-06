@@ -99,14 +99,16 @@ Vue.component('cal-day', {
             <clock :time="show.airing"></clock>
           </div>
           <div class="todo" v-if="todo[show.meta.id] && todo[show.meta.id].count">
-            <i class="fas fa-clock" v-if="settings.showPTW && ptw.todo[show.meta.id]"></i>
+            <i class="fas fa-clock" v-if="settings.showPTW && show.onMyMal && show.onMyMal.status == 6"></i>
             {{
               todo[show.meta.id].end - todo[show.meta.id].begin <= 0 ?
               todo[show.meta.id].begin :
               todo[show.meta.id].begin + '-' + todo[show.meta.id].end
             }}
           </div>
-          <div class="todo" v-if="settings.showPTW && ptw.todo[show.meta.id] && !(todo[show.meta.id] && todo[show.meta.id].count)">
+          <div class="todo" v-if="settings.showPTW &&
+            show.onMyMal && show.onMyMal.status == 6 &&
+            !(todo[show.meta.id] && todo[show.meta.id].count)">
             <i class="fas fa-clock"></i>
           </div>
           <div :class="['links', {hidden: settings.hideLinks}]">
@@ -219,6 +221,8 @@ function update() {
         ptw.push(show);
       if(show.ani_id)
         ptw.todo[show.ani_id] = show;
+      else
+        ptw.todo['mal' + show.mal_id] = show;
     }
 
     ptw.sort((a, b) => b.count - a.count);
