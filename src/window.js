@@ -1,16 +1,27 @@
 const { app, BrowserWindow } = require('electron');
+const windowStateKeeper = require('electron-window-state');
 
 app.on('ready', () => {
+
+  const mainWindowState = windowStateKeeper({
+    defaultWidth: 800,
+    defaultHeight: 600,
+  });
+
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    x: mainWindowState.x,
+    y: mainWindowState.y,
+    width: mainWindowState.width,
+    height: mainWindowState.height,
     minHeight: 300,
     minWidth: 300,
     autoHideMenuBar: true,
-    useContentSize: true,
     resizable: true,
     icon: __dirname + '/server/logo.png',
   });
+
+  mainWindowState.manage(mainWindow);
+
   mainWindow.loadURL(__dirname + '/server/index.html');
   mainWindow.focus();
 });
