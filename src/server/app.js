@@ -190,10 +190,14 @@ async function todo(ptw=false) {
 
 function update() {
   airing().then(blob => {
-    // Sort the shows by air time
     for(let day in blob) {
+      // Sort by airing time
       blob[day] = blob[day].sort((a, b) =>
         a.airing - b.airing);
+
+      // Remove duplicate entries (silly anilist)
+      blob[day] = blob[day].filter((b, i) =>
+        blob[day].findIndex(e => e.meta.id === b.meta.id) === i);
     }
 
     app.calendar = blob;
