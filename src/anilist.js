@@ -63,7 +63,7 @@ async function airing() {
   const {data: {Page: { shows, page: {lastPage} }}} = await gqlQuery(airingQuery, { page: 1, ...vars });
 
   // Fetch the rest of the pages
-  const rest = await Promise.all(_.range(2, lastPage - 1).map(page =>
+  const rest = await Promise.all(_.range(2, lastPage).map(page =>
     gqlQuery(airingQuery, { page, ...vars })));
 
   // Return the concatenated pages
