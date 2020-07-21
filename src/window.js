@@ -9,6 +9,9 @@ app.on('ready', () => {
   });
 
   const mainWindow = new BrowserWindow({
+    webPreferences: {
+      nodeIntegration: true
+    },
     x: mainWindowState.x,
     y: mainWindowState.y,
     width: mainWindowState.width,
