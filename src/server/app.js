@@ -158,7 +158,7 @@ async function backgroundList() {
   let bgs = [];
 
   if(isElectron) {
-    const { config, backgrounds } = require('../config');
+    const { backgrounds } = require('../config');
     const fs = require('fs');
     bgs = backgrounds(true).map(bg => ({
       text: transformStr(bg),
