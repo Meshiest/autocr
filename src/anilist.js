@@ -1,5 +1,6 @@
 const fetch = require('node-fetch');
 const _ = require('lodash');
+const { reject } = require('lodash');
 
 const airingQuery = `
 query ($page: Int, $perPage: Int, $date: Int) {
@@ -30,32 +31,64 @@ query ($page: Int, $perPage: Int, $date: Int) {
 }
 `;
 
-
-function gqlQuery(query, variables={}) {
-  return fetch('https://graphql.anilist.co', {
+async function gqlQuery(query, variables = {}) {
+  const resp = await fetch('https://graphql.anilist.co', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     },
     body: JSON.stringify({ query, variables }),
-  })
-  .then(r => r.json());
+  });
+  const text = await resp.text();
+  if (resp.statusCode > 300 || resp.statusCode < 200) {
+    console.error(text);
+    throw new Error('error code ' + resp.statusCode);
+  }
+  return JSON.parse(text);
 }
+
+let airingPending;
 
 // Get all the airing shows within a week
 async function airing() {
-  const oneWeek = Math.floor(Date.now() / 1000 + 60 * 60 * 24 * 7);
-  const vars = { perPage: 50, date: oneWeek };
+  if (airingPending) return await airingPending;
 
-  // Fetch the first page
-  const {data: {Page: { shows, page: {lastPage, total} }}} = await gqlQuery(airingQuery, { page: 1, ...vars });
-  // Fetch the rest of the pages
-  const rest = await Promise.all(_.range(2, lastPage + 1).map(page =>
-    gqlQuery(airingQuery, { page, ...vars })));
+  let airingResolve, airingReject;
+  airingPending = new Promise((resolve, reject) => {
+    airingResolve = resolve;
+    airingReject = reject;
+  });
 
-  // Return the concatenated pages
-  return shows.concat(...rest.map(obj => obj.data.Page.shows));
+  try {
+    const oneWeek = Math.floor(Date.now() / 1000 + 60 * 60 * 24 * 7);
+    const vars = { perPage: 50, date: oneWeek };
+
+    // Fetch the first page
+    const {
+      data: {
+        Page: { shows, page },
+      },
+    } = await gqlQuery(airingQuery, { page: 1, ...vars });
+    let { hasNextPage } = page;
+
+    for (let i = 2; hasNextPage; i++) {
+      const {
+        data: {
+          Page: { shows: moreShows, page },
+        },
+      } = await gqlQuery(airingQuery, { page: i, ...vars });
+      shows.push(...moreShows);
+      hasNextPage = page.hasNextPage;
+    }
+
+    airingResolve(shows);
+    return shows;
+  } catch (err) {
+    airingReject(err);
+  } finally {
+    airingPending = null;
+  }
 }
 
 // Build a week schedule for the airing shows
@@ -75,7 +108,7 @@ async function calendar() {
 
   const days = Object.keys(calendar);
 
-  for(const show of shows) {
+  for (const show of shows) {
     // put the show in its respective day based on airing time
     calendar[days[new Date(show.airing * 1000).getDay()]].push(show);
   }

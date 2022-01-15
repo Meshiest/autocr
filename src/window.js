@@ -2,7 +2,6 @@ const { app, BrowserWindow } = require('electron');
 const windowStateKeeper = require('electron-window-state');
 
 app.on('ready', () => {
-
   const mainWindowState = windowStateKeeper({
     defaultWidth: 800,
     defaultHeight: 600,
@@ -10,7 +9,8 @@ app.on('ready', () => {
 
   const mainWindow = new BrowserWindow({
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      contextIsolation: false,
     },
     x: mainWindowState.x,
     y: mainWindowState.y,

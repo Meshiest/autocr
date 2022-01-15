@@ -8,13 +8,7 @@ Vue.component('clock', {
       const date = new Date(time * 1000);
       const hour = date.getHours() % 12 == 0 ? 12 : date.getHours();
       const am = date.getHours() < 12 ? 'a' : 'p';
-      return `${
-        hour
-      }:${
-        (date.getMinutes() + '').padStart(2, 0)
-      }${
-        am
-      }`;
+      return `${hour}:${(date.getMinutes() + '').padStart(2, 0)}${am}`;
     },
   },
 });
@@ -70,7 +64,7 @@ Vue.component('cal-day', {
   methods: {
     hasLink(show, type) {
       return show.meta.links.filter(link => link.site == type).length > 0;
-    }
+    },
   },
   template: `
     <div class="calendar-day">
@@ -138,7 +132,7 @@ Vue.component('cal-day', {
 const isElectron = typeof require === 'function';
 
 async function airing() {
-  if(isElectron) {
+  if (isElectron) {
     return await require('../animeutils').fetch.airing();
   } else {
     const resp = await fetch('/api/airing');
@@ -157,31 +151,29 @@ function transformStr(str) {
 async function backgroundList() {
   let bgs = [];
 
-  if(isElectron) {
+  if (isElectron) {
     const { backgrounds } = require('../config');
     const fs = require('fs');
     bgs = backgrounds(true).map(bg => ({
       text: transformStr(bg),
-      value: {type: 'image', value: bg},
+      value: { type: 'image', value: bg },
     }));
-
   } else {
     const resp = await fetch('/api/backgrounds');
     bgs = (await resp.json()).map(bg => ({
       text: transformStr(bg),
-      value: {type: 'image', value: `bg/${bg}`},
+      value: { type: 'image', value: `bg/${bg}` },
     }));
   }
 
   return bgs;
 }
 
-async function todo(ptw=false) {
-  if(isElectron) {
-    if(!require('../config.js').config)
-      return [];
+async function todo(ptw = false) {
+  if (isElectron) {
+    if (!require('../config.js').config) return [];
 
-    return await require('../animeutils.js').fetch.todo({ptw});
+    return await require('../animeutils.js').fetch.todo({ ptw });
   } else {
     const resp = await fetch(ptw ? '/api/ptw' : '/api/todo');
     return await resp.json();
@@ -190,14 +182,14 @@ async function todo(ptw=false) {
 
 function update() {
   airing().then(blob => {
-    for(let day in blob) {
+    for (let day in blob) {
       // Sort by airing time
-      blob[day] = blob[day].sort((a, b) =>
-        a.airing - b.airing);
+      blob[day] = blob[day].sort((a, b) => a.airing - b.airing);
 
       // Remove duplicate entries (silly anilist)
-      blob[day] = blob[day].filter((b, i) =>
-        blob[day].findIndex(e => e.meta.id === b.meta.id) === i);
+      blob[day] = blob[day].filter(
+        (b, i) => blob[day].findIndex(e => e.meta.id === b.meta.id) === i
+      );
     }
 
     app.calendar = blob;
@@ -207,26 +199,20 @@ function update() {
   todo().then(blob => {
     const todo = {};
 
-    for(let show of blob)
-      if(show.ani_id)
-        todo[show.ani_id] = show;
-      else
-        todo['mal' + show.mal_id] = show;
+    for (let show of blob)
+      if (show.ani_id) todo[show.ani_id] = show;
+      else todo['mal' + show.mal_id] = show;
 
     app.todo = todo;
-
   });
   todo(true).then(blob => {
     let ptw = [];
     ptw.todo = {};
 
-    for(let show of blob) {      
-      if(show.begin)
-        ptw.push(show);
-      if(show.ani_id)
-        ptw.todo[show.ani_id] = show;
-      else
-        ptw.todo['mal' + show.mal_id] = show;
+    for (let show of blob) {
+      if (show.begin) ptw.push(show);
+      if (show.ani_id) ptw.todo[show.ani_id] = show;
+      else ptw.todo['mal' + show.mal_id] = show;
     }
 
     ptw.sort((a, b) => b.count - a.count);
@@ -234,7 +220,6 @@ function update() {
 
     app.ptw = ptw;
   });
-
 }
 
 update();
@@ -242,12 +227,11 @@ setInterval(update, 60 * 60 * 1000);
 
 // Open link externally if we're in electron
 function clickLink(event) {
-  if(!isElectron)
-    return;
+  if (!isElectron) return;
 
   event.preventDefault();
   let link = event.target.href;
-  require("electron").shell.openExternal(link);
+  require('electron').shell.openExternal(link);
 }
 
 const app = new Vue({
@@ -261,9 +245,10 @@ const app = new Vue({
       localStorage.autocrSettings = JSON.stringify(this.settings);
     },
     updateBG(bg) {
-      bg = bg || this.settings.background || {type: 'class', value: 'default-bg'};
+      bg = bg ||
+        this.settings.background || { type: 'class', value: 'default-bg' };
       this.settings.background = bg;
-      if(bg.type === 'class') {
+      if (bg.type === 'class') {
         document.body.className = bg.value;
         document.body.style.setProperty('--background', '');
       } else {
@@ -271,9 +256,8 @@ const app = new Vue({
         document.body.style.setProperty('--background', `url(${bg.value})`);
         // document.body.style.backgroundImage = `url(${bg.value})`;
       }
-      if(this.settings.blurBg)
-        document.body.className += ' blur';
-    }
+      if (this.settings.blurBg) document.body.className += ' blur';
+    },
   },
   created() {
     this.updateBG();
@@ -290,18 +274,22 @@ const app = new Vue({
   },
   data: {
     loading: true,
-    filters: localStorage.autocrFilters ? JSON.parse(localStorage.autocrFilters) : {
-      showAll: false,
-      crunchy: false,
-      amazon: false,
-    },
-    settings: localStorage.autocrSettings ? JSON.parse(localStorage.autocrSettings) : {
-      english: false,
-      hideLinks: false,
-      showPTW: false,
-    },
+    filters: localStorage.autocrFilters
+      ? JSON.parse(localStorage.autocrFilters)
+      : {
+          showAll: false,
+          crunchy: false,
+          amazon: false,
+        },
+    settings: localStorage.autocrSettings
+      ? JSON.parse(localStorage.autocrSettings)
+      : {
+          english: false,
+          hideLinks: false,
+          showPTW: false,
+        },
     todo: {},
-    ptw: {length: 0, todo: {}},
+    ptw: { length: 0, todo: {} },
     calendar: {
       monday: [],
       tuesday: [],
@@ -310,12 +298,27 @@ const app = new Vue({
       friday: [],
     },
     backgrounds: [
-      {text: 'Default Gradient', value: {type: 'class', value: 'default-bg'}},
-      {text: 'Light Gray', value: {type: 'class', value: 'grey-bg'}},
-      {text: 'Rainy Sky', value: {type: 'image', value: 'img/rainy-sky.jpg'}},
-      {text: 'Roof Fence', value: {type: 'image', value: 'img/roof-fence.jpg'}},
-      {text: 'Sunset Coast', value: {type: 'image', value: 'img/sunset-coast.jpg'}},
-      {text: 'Seaside Pool', value: {type: 'image', value: 'img/seaside-pool.jpg'}},
+      {
+        text: 'Default Gradient',
+        value: { type: 'class', value: 'default-bg' },
+      },
+      { text: 'Light Gray', value: { type: 'class', value: 'grey-bg' } },
+      {
+        text: 'Rainy Sky',
+        value: { type: 'image', value: 'img/rainy-sky.jpg' },
+      },
+      {
+        text: 'Roof Fence',
+        value: { type: 'image', value: 'img/roof-fence.jpg' },
+      },
+      {
+        text: 'Sunset Coast',
+        value: { type: 'image', value: 'img/sunset-coast.jpg' },
+      },
+      {
+        text: 'Seaside Pool',
+        value: { type: 'image', value: 'img/seaside-pool.jpg' },
+      },
     ],
   },
 });
